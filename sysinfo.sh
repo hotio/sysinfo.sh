@@ -92,26 +92,22 @@ printf "\nups info:\n"
 #######################################################
 COLUMNS=${COLUMNS_DOCKER}
 
-mapfile -t containers < <(docker ps --all --format '{{.Names}}\t{{.Status}}' | sort -k1 | awk '{ print $1,$2 }')
-
 out=""
-while read -r name status; do
+while IFS=',' read -r name status; do
     image=$(docker inspect --format='{{.Config.Image}}' "$name" 2> /dev/null)
     image_digest=$(docker image inspect --format='{{.Id}}' "$image" 2> /dev/null)
     container_digest=$(docker inspect --format='{{.Image}}' "$name" 2> /dev/null)
     update_status=""
-    [[ "$image_digest" != "$container_digest" ]] && update_status='*'
-
-    if [[ "${status}" == "Up" ]]; then
-        out+="${name}:,${green}${status,,}${undim}${update_status},| "
-    else
-        out+="${name}:,${red}${status,,}${undim}${update_status},| "
-    fi
+    [[ "$image_digest" != "$container_digest" ]] && update_status=' ⏺'
+    [[ "${status}" == *"Exited"* ]] && status_text="${red}⏹${white}"
+    [[ "${status}" == *"Up"* ]] && status_text="${green}⏵${white}"
+    [[ "${status}" == *"Paused"* ]] && status_text="${yellow}⏸${white}"
+    out+="${name}${update_status},${status_text},┆ "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
-done < <(docker ps --all --format '{{.Names}}\t{{.Status}}' | sort -k1 | awk '{ print $1,$2 }')
+done < <(docker ps --all --format '{{.Names}},{{.Status}}' | sort -k1)
 
 containers_all=$(docker ps --all --format '{{.Names}}' | wc -l)
 containers_exited=$(docker ps --all --format '{{.Names}}' --filter "status=exited" | wc -l)
@@ -121,7 +117,7 @@ images_dangling=$(docker images --format '{{.ID}}' --filter "dangling=true" | wc
 printf "\ndocker status:\n"
 printf "  Containers : %s (%s exited)\n" "${containers_all}" "${containers_exited}"
 printf "  Images     : %s (%s dangling)\n\n" "${images_all}" "${images_dangling}"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
 [[ -z ${out} ]] && printf '%b'  "  no containers\n"
 
 #######################################################
@@ -138,15 +134,15 @@ out=""
 while IFS= read -r vm; do
     name=$(xargs <<< "${vm:${column2}:${column2_length}}")
     status=$(xargs <<< "${vm:${column3}}")
-    if [[ "${status}" == "running" ]]; then
-        out+="${name}:,${green}${status,,}${undim},| "
-    elif [[ "${status}" == "paused" ]]; then
-        out+="${name}:,${yellow}${status,,}${undim},| "
-    elif [[ "${status}" == "shut off" ]]; then
-        out+="${name}:,${white}${status,,}${undim},| "
-    else
-        out+="${name}:,${red}${status,,}${undim},| "
-    fi
+    status_text=
+    [[ "${status}" == "running" ]] && status_text="${green}⏵${white}"
+    [[ "${status}" == "paused" ]] && status_text="${yellow}⏸${white}"
+    [[ "${status}" == "shut off" ]] && status_text="${red}⏹${white}"
+    [[ "${status}" == "crashed" ]] && status_text="${red}✖${white}"
+    [[ "${status}" == "pmsuspended" ]] && status_text="${yellow}⏾${white}"
+    [[ "${status}" == "idle" ]] && status_text="${yellow}⏯${white}"
+    [[ "${status}" == "in shutdown" ]] && status_text="${red}⏺${white}"
+    out+="${name},${status_text},┆ "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
@@ -154,7 +150,7 @@ while IFS= read -r vm; do
 done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 
 printf "\nvm status:\n"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
 [[ -z ${out} ]] && printf '%b'  "  no virtual machines\n"
 
 #######################################################
@@ -164,15 +160,17 @@ out=""
 while read -r share; do
     share_path=$(testparm -s -v --section-name "${share}" --parameter-name "path" 2> /dev/null)
     public=$(testparm -s -v --section-name "${share}" --parameter-name "public" 2> /dev/null)
+    if [[ ${public,,} == "no" ]]; then public="✘"; else public="✔"; fi
     writeable=$(testparm -s -v --section-name "${share}" --parameter-name "writeable" 2> /dev/null)
+    if [[ ${writeable,,} == "no" ]]; then writeable="✘"; else writeable="✔"; fi
     valid_users=$(testparm -s -v --section-name "${share}" --parameter-name "valid users" 2> /dev/null)
     read_list=$(testparm -s -v --section-name "${share}" --parameter-name "read list" 2> /dev/null)
     write_list=$(testparm -s -v --section-name "${share}" --parameter-name "write list" 2> /dev/null)
-    out+="|${share}|${share_path}|${public,,}|${writeable,,}|${valid_users}|${read_list}|${write_list}|\n"
+    out+="|${share}|${share_path}|${public}|${writeable}|${valid_users}|${read_list}|${write_list}|\n"
 done < <(testparm -s 2> /dev/null | grep '\[.*\]' | grep -v -E "global|homes|printers" | sed -e 's/\[//' -e 's/\]//')
 
 printf "\nsmb shares:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}" -N " ,Share,Path,Public,Writeable,Valid Users,Read List,Write List"
+[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -o ' ┆ ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}" -N " ,Share,Path,Public,Writeable,Valid Users,Read List,Write List"
 [[ -z ${out} ]] && printf '%b'  "  no shares exported\n"
 
 #######################################################
@@ -201,15 +199,15 @@ while read -r interface; do
     out+="||Total|$rx|$tx|$total|\n"
 done < <(vnstat --json 2> /dev/null | jq -r '.interfaces | .[].name')
 
-[[ -n ${out} ]] && printf "\nnetwork usage:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|' -N " , , ,Rx,Tx,Total"
+[[ -n ${out} ]] && printf "\nnetwork stats:\n"
+[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' ┆ ' -s '|' -N " , , ,Rx,Tx,Total"
 
 #######################################################
 ## MEMORY                                            ##
 #######################################################
 max_usage=95
 warn_usage=80
-bar_width=50
+bar_width=52
 
 printf "\nmemory usage:\n"
 
@@ -224,15 +222,15 @@ while read -r line; do
     [[ "${usage_perc}" -ge "${warn_usage}" ]] && color=${yellow}
     [[ "${usage_perc}" -ge "${max_usage}" ]] && color=${red}
 
-    bar="[${color}"
+    bar="${color}"
     for ((i=0; i<used_width; i++)); do
-        bar+="="
+        bar+="▰"
     done
     bar+="${white}${dim}"
     for ((i=used_width; i<bar_width; i++)); do
-        bar+="="
+        bar+="▰"
     done
-    bar+="${undim}]"
+    bar+="${undim}"
 
     total=$(numfmt --to iec-i --format "%f" "$total")
     printf "  %-31s%+3s used out of %+5s\n" "${title,,}" "$usage_perc%" "$total"
@@ -244,7 +242,7 @@ done < <(free --bytes | awk '$2 != 0' | tail -n+2)
 #######################################################
 max_usage=95
 warn_usage=80
-bar_width=50
+bar_width=52
 filter_disks=${DISK_USAGE_FILTER}
 
 printf "\ndisk usage:\n"
@@ -257,15 +255,15 @@ while read -r line; do
     [[ "${usage_perc}" -ge "${warn_usage}" ]] && color=${yellow}
     [[ "${usage_perc}" -ge "${max_usage}" ]] && color=${red}
 
-    bar="[${color}"
+    bar="${color}"
     for ((i=0; i<used_width; i++)); do
-        bar+="="
+        bar+="▰"
     done
     bar+="${white}${dim}"
     for ((i=used_width; i<bar_width; i++)); do
-        bar+="="
+        bar+="▰"
     done
-    bar+="${undim}]"
+    bar+="${undim}"
 
     awk '{ printf("  %-32s%+3s used out of %+4s\n", $1, $2, $3); }' <<< "${line}"
     printf "  %b\n" "${bar}"
@@ -282,7 +280,7 @@ SSD_LIFE_TRESHOLD=90
 filter_disks=${DISK_STATUS_FILTER}
 
 function displaytime {
-    if [[ ${1} != "*" ]]; then
+    if [[ ${1} != "" ]]; then
         local T=$1
         local Y=$((T/24/365))
         local D=$((T/24%365))
@@ -310,12 +308,12 @@ while read -r disk; do
         state=$(hdparm -C "/dev/${device}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
         smart_available=true
     else
-        state="*"
+        state=" "
         smart_available=false
     fi
-    temp="*"
-    power_on_hours="*"
-    health="*"
+    temp=""
+    power_on_hours=""
+    health=""
     temp_color=${white}
     health_color=${white}
 
@@ -348,13 +346,14 @@ while read -r disk; do
         fi
         [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02dC' "$temp")"
     fi
-
+    [[ ${state} == "active/idle" ]] && state="$green⏺$white"
+    [[ ${state} == "standby" ]] && state="$dim⏺$white"
     serial="|${serial}"; [[ ${DISK_STATUS_HIDE_SERIAL} == true ]] && serial=""
-    out+="|${device_label}|${tran}|${model}${serial}|${temp_color}${temp}${undim}|${health_color}${health}${undim}|$(displaytime "${power_on_hours}")|${state}|\n"
+    out+="|${device_label}|${tran}|${model}${serial}|${temp_color}${temp}${white}|${health_color}${health}${white}|$(displaytime "${power_on_hours}")|${state}\n"
 done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
 
 printf "\ndisk status:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' -N " ,Device,Tran,Model${serial_header},Temp,Health,Power On,State" | grep -v -E "${filter_disks}"
+[[ -n ${out} ]] && printf '%b' " ${out}\n" | column -t -o ' ┆ ' -s '|' -N " ,Device,Tran,Model${serial_header},Temp,Health,Power On" | grep -v -E "${filter_disks}"
 [[ -z ${out} ]] && printf '%b'  "  no physical disks\n"
 
 printf "\n"
