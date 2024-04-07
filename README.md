@@ -28,13 +28,14 @@ ups info:
     Load    : 15% / 105W
 
 docker status:
-  Containers : 0 (0 exited)
-  Images     : 0 (0 dangling)
+  Containers : 4 (0 exited)
+  Images     : 4 (0 dangling)
 
-  no containers
+  | plex: up | caddy: up | cloudflareddns: up | test: up | 
 
 vm status:
-  no virtual machines
+  | Ubuntu 22.04:        running  | Windows 10: shut off | Windows 7: shut off | 
+  | Windows Server 2008: shut off | Windows XP: shut off | 
 
 smb shares:
   | Share     | Path           | Public | Writeable | Valid Users | Read List | Write List | 
@@ -68,6 +69,9 @@ disk usage:
   [==================================================]
 
 disk status:
-  no physical disks
+  | Device | Tran | Model                            | Temp | Health  | Power On     | State       | 
+  | sda    | usb  | Flash Drive (32G)                | *    | *       | *            | *           | 
+  | sdb    | sata | Samsung SSD 860 EVO 250GB (250G) | 24C  | healthy | 02y 036d 19h | active/idle | 
+  | sdc    | sata | Samsung SSD 850 EVO 250GB (250G) | 25C  | healthy | 03y 357d 01h | active/idle | 
 
 ```
