@@ -5,12 +5,14 @@
 #######################################################
 COLUMNS_DOCKER=4
 COLUMNS_VM=3
+COLUMNS_SYSTEMD=5
 SMB_TABLE_WIDTH=120
 DISK_USAGE_FILTER="/mnt/disks"
 #DISK_USAGE_FILTER="user|user0|libvirt|disk"
 DISK_STATUS_FILTER="DONOTFILTER"
 #DISK_STATUS_FILTER="sda|sas"
 DISK_STATUS_HIDE_SERIAL=true
+SYSTEMD_SERVICES_MONITOR="smbd,docker,libvirtd,avahi-daemon,nut-monitor,ssh,vnstat"
 #######################################################
 
 [[ -f /etc/default/hotio-sysinfo ]] && source /etc/default/hotio-sysinfo
@@ -152,6 +154,27 @@ done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 printf "\nvm status:\n"
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
 [[ -z ${out} ]] && printf '%b'  "  no virtual machines\n"
+
+#######################################################
+## SYSTEMD SERVICES                                  ##
+#######################################################
+COLUMNS=${COLUMNS_SYSTEMD}
+type -p systemctl > /dev/null && services="${SYSTEMD_SERVICES_MONITOR}"
+out=""
+while read -r service; do
+    status=$(systemctl is-active "${service}" 2> /dev/null)
+    status_text=""
+    [[ "${status}" == "active" ]] && status_text="${green}⏵${white}"
+    [[ "${status}" == "inactive" ]] && status_text="${red}⏹${white}"
+    out+="${service},${status_text},┆ "
+    if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
+        out+="\n"
+    fi
+    i=$((i+1))
+done < <(tr , '\n' <<< "${services}" | sort | sed -e '/^$/d')
+
+[[ -n ${out} ]] && printf "\nsystemd services:\n"
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
 
 #######################################################
 ## SAMBA                                             ##
