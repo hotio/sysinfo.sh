@@ -13,7 +13,7 @@ DISK_STATUS_FILTER="DONOTFILTER"
 DISK_STATUS_HIDE_SERIAL=true
 #######################################################
 
-source /etc/default/hotio-sysinfo
+[[ -f /etc/default/hotio-sysinfo ]] && source /etc/default/hotio-sysinfo
 
 # colors
 W="\e[0;39m"
