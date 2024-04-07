@@ -267,7 +267,7 @@ while read -r line; do
 
     awk '{ printf("  %-32s%+3s used out of %+4s\n", $1, $2, $3); }' <<< "${line}"
     printf "  %b\n" "${bar}"
-done < <(df -h -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${filter_disks}" | tail -n+2)
+done < <(df -H -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${filter_disks}" | tail -n+2)
 
 #######################################################
 ## DISKSTATUS                                        ##
