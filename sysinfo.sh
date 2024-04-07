@@ -95,9 +95,7 @@ COLUMNS=${COLUMNS_DOCKER}
 mapfile -t containers < <(docker ps --all --format '{{.Names}}\t{{.Status}}' | sort -k1 | awk '{ print $1,$2 }')
 
 out=""
-for i in "${!containers[@]}"; do
-    read -r name status <<< "${containers[i]}"
-
+while read -r name status; do
     image=$(docker inspect --format='{{.Config.Image}}' "$name" 2> /dev/null)
     image_digest=$(docker image inspect --format='{{.Id}}' "$image" 2> /dev/null)
     container_digest=$(docker inspect --format='{{.Image}}' "$name" 2> /dev/null)
@@ -109,11 +107,11 @@ for i in "${!containers[@]}"; do
     else
         out+="${name}:,${red}${status,,}${undim}${update_status},| "
     fi
-
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
-done
+    i=$((i+1))
+done < <(docker ps --all --format '{{.Names}}\t{{.Status}}' | sort -k1 | awk '{ print $1,$2 }')
 
 containers_all=$(docker ps --all --format '{{.Names}}' | wc -l)
 containers_exited=$(docker ps --all --format '{{.Names}}' --filter "status=exited" | wc -l)
@@ -140,7 +138,6 @@ out=""
 while IFS= read -r vm; do
     name=$(xargs <<< "${vm:${column2}:${column2_length}}")
     status=$(xargs <<< "${vm:${column3}}")
-
     if [[ "${status}" == "running" ]]; then
         out+="${name}:,${green}${status,,}${undim},| "
     elif [[ "${status}" == "paused" ]]; then
@@ -150,10 +147,10 @@ while IFS= read -r vm; do
     else
         out+="${name}:,${red}${status,,}${undim},| "
     fi
-
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
+    i=$((i+1))
 done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 
 printf "\nvm status:\n"
