@@ -71,6 +71,20 @@ system info:
 printf "%b" "$out"
 
 #######################################################
+## THERMALS                                          ##
+#######################################################
+out=""
+while IFS=',' read -r line; do
+    type=$(awk '{print $1}' <<< "$line")
+    temp=$(awk '{print $2}' <<< "$line")
+    out+="  ${type},:,${temp}\n"
+done < <(paste <(cat /sys/class/thermal/thermal_zone*/type 2> /dev/null) <(cat /sys/class/thermal/thermal_zone*/temp 2> /dev/null) | column -s ',' -t | sed 's/\(.\)..$/.\1°C/')
+
+printf "\ntemperatures:\n"
+[[ -n ${out} ]] && printf '%b' "${out}" | column -ts ',' -o ' '
+[[ -z ${out} ]] && printf '%b'  "  no thermals found\n"
+
+#######################################################
 ## UPS                                               ##
 #######################################################
 sec2min() { printf "%d:%02d" "$((10#$1 / 60))" "$((10#$1 % 60))"; }
@@ -376,7 +390,7 @@ while read -r disk; do
             [[ "${temp}" -ge "${WARN_TEMP_SSD}" ]] && temp_color=${yellow}
             [[ "${temp}" -ge "${MAX_TEMP_SSD}" ]] && temp_color=${red}
         fi
-        [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02dC' "$temp")"
+        [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02d°C' "$temp")"
     fi
     [[ ${state} == "active/idle" ]] && state="$green⏺$white"
     [[ ${state} == "standby" ]] && state="$dim⏺$white"
