@@ -13,6 +13,7 @@ DISK_STATUS_FILTER="DONOTFILTER"
 #DISK_STATUS_FILTER="sda|sas"
 DISK_STATUS_HIDE_SERIAL=true
 SYSTEMD_SERVICES_MONITOR="smbd,docker,libvirtd,avahi-daemon,nut-monitor,ssh,vnstat"
+IP_ADDRESSES_INTERFACE_FILTER="lo"
 #######################################################
 
 [[ -f /etc/default/hotio-sysinfo ]] && source /etc/default/hotio-sysinfo
@@ -69,6 +70,22 @@ system info:
 "
 
 printf "%b" "$out"
+
+#######################################################
+## IP ADDRESSES                                      ##
+#######################################################
+out=""
+filter_interfaces=${IP_ADDRESSES_INTERFACE_FILTER}
+json=$(ip --json addr 2> /dev/null)
+
+while read -r interface; do
+    addr=$(jq -r '.[] | select(.ifname == "'"${interface}"'") | .addr_info[] | select(.scope == "global") | .local' <<< "${json}" | sed 's/^/,: /')
+    [[ -n ${addr} ]] && out+="  ${interface}" && out+="${addr}\n"
+done < <(jq -r '.[].ifname' <<< "${json}" | grep -v -E "${filter_interfaces}")
+
+printf "\nip addresses:\n"
+[[ -n ${out} ]] && printf '%b\n' "${out}" | sed 's/^,:/, /' | column -t -o ' ' -s ','
+[[ -z ${out} ]] && printf '%b'  "  none found\n"
 
 #######################################################
 ## THERMALS                                          ##
