@@ -13,12 +13,17 @@ Script output will look like this:
 
 ```text
 system info:
-  Distro    : Slackware 15.0 x86_64 (post 15.0 -current)
-  Kernel    : Linux 6.1.79-Unraid
+  Distro    : Ubuntu 22.04.4 LTS
+  Kernel    : Linux 5.15.0-101-generic
   Uptime    : up 3 days, 17 hours, 23 minutes
   CPU       : 13th Gen Intel(R) Core(TM) i5-13400 (16 vCPU)
   Load      : 2.35 (1m), 0.68 (5m), 0.28 (15m)
   Processes : 577 (root), 38 (user), 615 (total)
+  Updates   : 3 available
+
+temperatures:
+  acpitz       : 27.8°C
+  x86_pkg_temp : 32.0°C
 
 ups info:
   [Back-UPS XS 1400U]
@@ -37,8 +42,8 @@ vm status:
   ┆ Ubuntu 22.04 ⏵ ┆ Windows XP ⏹ ┆ 
 
 smb shares:
-  ┆ Share         ┆ Path                    ┆ Public ┆ Writeable ┆ Valid Users   ┆ Read List ┆ Write List    ┆ 
-  ┆ homeassistant ┆ /mnt/user/homeassistant ┆ ✘      ┆ ✘         ┆ homeassistant ┆           ┆ homeassistant ┆ 
+  ┆ Share ┆ Path           ┆ Public ┆ Writeable ┆ Valid Users ┆ Read List ┆ Write List ┆ 
+  ┆ test  ┆ /mnt/user/test ┆ ✘      ┆ ✘         ┆ hotio       ┆           ┆ hotio      ┆ 
 
 network stats:
   ┆        ┆            ┆         Rx ┆         Tx ┆      Total ┆ 
@@ -70,6 +75,6 @@ disk usage:
 disk status:
   ┆ Device ┆ Tran ┆ Model                            ┆ Temp ┆ Health  ┆ Power On     ┆ 
   ┆ sda    ┆ usb  ┆ Flash Drive (32G)                ┆      ┆         ┆              ┆  
-  ┆ sdb    ┆ sata ┆ Samsung SSD 860 EVO 250GB (250G) ┆ 29C  ┆ healthy ┆ 02y 037d 03h ┆ ⏺
-  ┆ sdc    ┆ sata ┆ Samsung SSD 850 EVO 250GB (250G) ┆ 30C  ┆ healthy ┆ 03y 357d 09h ┆ ⏺
+  ┆ sdb    ┆ sata ┆ Samsung SSD 860 EVO 250GB (250G) ┆ 29°C ┆ healthy ┆ 02y 037d 03h ┆ ⏺
+  ┆ sdc    ┆ sata ┆ Samsung SSD 850 EVO 250GB (250G) ┆ 30°C ┆ healthy ┆ 03y 357d 09h ┆ ⏺
 ```
