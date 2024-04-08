@@ -51,10 +51,10 @@ PROCESSOR_COUNT=$(wc -l <<< "${PROCESSOR}")
 # updates check
 if type -p apt > /dev/null; then
     UPDATES="$(apt list --upgradable 2> /dev/null | tail -n+2 | wc -l)"
-    [[ ${UPDATES} -gt 0 ]] && UPDATES="\n  Updates   : ${yellow}${UPDATES} available${white}"
-    [[ ${UPDATES} -eq 0 ]] && UPDATES="\n  Updates   : ${UPDATES} available"
+    [[ ${UPDATES} -gt 0 ]] && UPDATES_TEXT="\n  Updates   : ${yellow}${UPDATES} available${white}"
+    [[ ${UPDATES} -eq 0 ]] && UPDATES_TEXT="\n  Updates   : ${UPDATES} available"
 else
-    UPDATES=""
+    UPDATES_TEXT=""
 fi
 
 # print results
@@ -65,7 +65,7 @@ system info:
   Uptime    : $UPTIME
   CPU       : $PROCESSOR_NAME ($G$PROCESSOR_COUNT$W vCPU)
   Load      : $G$LOAD1$W (1m), $G$LOAD5$W (5m), $G$LOAD15$W (15m)
-  Processes : $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)$UPDATES
+  Processes : $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)$UPDATES_TEXT
 "
 
 printf "%b" "$out"
