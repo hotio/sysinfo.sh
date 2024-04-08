@@ -21,6 +21,12 @@ system info:
   Processes : 577 (root), 38 (user), 615 (total)
   Updates   : 3 available
 
+ip addresses:
+  br0             : 192.168.1.3
+  br-5f0a16907fa8 : 172.20.0.1
+  docker0         : 172.17.0.1
+  virbr0          : 192.168.122.1
+
 temperatures:
   acpitz       : 27.8°C
   x86_pkg_temp : 32.0°C
