@@ -42,45 +42,45 @@ docker status:
   Containers : 4 (0 exited)
   Images     : 4 (0 dangling)
 
-  ┆ hotio ⏵ ┆ caddy ⏵ ┆ cloudflareddns ⏵ ┆ test ⏵ ┆ 
+  | hotio > | caddy > | cloudflareddns > | test > | 
 
 vm status:
-  ┆ Ubuntu 22.04 ⏵ ┆ Windows XP ⏹ ┆ 
+  | Ubuntu 22.04 > | Windows XP x | 
 
 smb shares:
-  ┆ Share ┆ Path           ┆ Public ┆ Writeable ┆ Valid Users ┆ Read List ┆ Write List ┆ 
-  ┆ test  ┆ /mnt/user/test ┆ ✘      ┆ ✘         ┆ hotio       ┆           ┆ hotio      ┆ 
+  | Share | Path           | Public | Writeable | Valid Users | Read List | Write List | 
+  | test  | /mnt/user/test | x      | x         | hotio       |           | hotio      | 
 
 network stats:
-  ┆        ┆            ┆         Rx ┆         Tx ┆      Total ┆ 
-  ┆ enp1s0 ┆            ┆            ┆            ┆            ┆ 
-  ┆        ┆ Today      ┆  10,72 MiB ┆   1,75 MiB ┆  12,47 MiB ┆ 
-  ┆        ┆ This Month ┆ 347,39 MiB ┆  59,57 MiB ┆ 406,97 MiB ┆ 
-  ┆        ┆ Total      ┆ 347,39 MiB ┆  59,57 MiB ┆ 406,97 MiB ┆ 
-  ┆ enp3s0 ┆            ┆            ┆            ┆            ┆ 
-  ┆        ┆ Today      ┆        0 B ┆        0 B ┆        0 B ┆ 
-  ┆        ┆ This Month ┆   2,66 MiB ┆ 526,68 KiB ┆   3,17 MiB ┆ 
-  ┆        ┆ Total      ┆   2,66 MiB ┆ 526,68 KiB ┆   3,17 MiB ┆ 
+  |        |            |         Rx |         Tx |      Total | 
+  | enp1s0 |            |            |            |            | 
+  |        | Today      |  10,72 MiB |   1,75 MiB |  12,47 MiB | 
+  |        | This Month | 347,39 MiB |  59,57 MiB | 406,97 MiB | 
+  |        | Total      | 347,39 MiB |  59,57 MiB | 406,97 MiB | 
+  | enp3s0 |            |            |            |            | 
+  |        | Today      |        0 B |        0 B |        0 B | 
+  |        | This Month |   2,66 MiB | 526,68 KiB |   3,17 MiB | 
+  |        | Total      |   2,66 MiB | 526,68 KiB |   3,17 MiB | 
 
 memory usage:
   mem                            30% used out of  16Gi
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
 
 disk usage:
   /                                2% used out of 8.3G
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
   /boot                            4% used out of  33G
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
   /mnt/disk1                      76% used out of  10T
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
   /mnt/disk2                      60% used out of 8.0T
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
   /mnt/disk3                       1% used out of 4.0T
-  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+  ====================================================
 
 disk status:
-  ┆ Device ┆ Tran ┆ Model                            ┆ Temp ┆ Health  ┆ Power On     ┆ 
-  ┆ sda    ┆ usb  ┆ Flash Drive (32G)                ┆      ┆         ┆              ┆  
-  ┆ sdb    ┆ sata ┆ Samsung SSD 860 EVO 250GB (250G) ┆ 29°C ┆ healthy ┆ 02y 037d 03h ┆ ⏺
-  ┆ sdc    ┆ sata ┆ Samsung SSD 850 EVO 250GB (250G) ┆ 30°C ┆ healthy ┆ 03y 357d 09h ┆ ⏺
+  | Device | Tran | Model                            | Temp | Health | Power On     | 
+  | sda    | usb  | Flash Drive (32G)                |      |        |              |  
+  | sdb    | sata | Samsung SSD 860 EVO 250GB (250G) | 29°C | ok     | 02y 037d 03h | o
+  | sdc    | sata | Samsung SSD 850 EVO 250GB (250G) | 30°C | ok     | 03y 357d 09h | o
 ```
