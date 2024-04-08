@@ -16,8 +16,6 @@ SYSTEMD_SERVICES_MONITOR="smbd,docker,libvirtd,avahi-daemon,nut-monitor,ssh,vnst
 IP_ADDRESSES_INTERFACE_FILTER="lo"
 #######################################################
 
-export LANG="en_US.UTF-8"
-
 [[ -f /etc/default/hotio-sysinfo ]] && source /etc/default/hotio-sysinfo
 
 # colors
