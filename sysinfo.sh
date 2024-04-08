@@ -189,7 +189,7 @@ while IFS= read -r vm; do
     [[ "${status}" == "pmsuspended" ]] && status_text="${yellow}⏾${white}"
     [[ "${status}" == "idle" ]] && status_text="${yellow}⏯${white}"
     [[ "${status}" == "in shutdown" ]] && status_text="${red}⏺${white}"
-    out+="${name},${status_text},┆ "
+    out+="${name}¥${status_text}¥┆ "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
@@ -197,7 +197,7 @@ while IFS= read -r vm; do
 done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 
 printf "\nvm status:\n"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts '¥' -o ' ' | sed -e 's/^/  ┆ /'
 [[ -z ${out} ]] && printf '%b'  "  no virtual machines\n"
 
 #######################################################
