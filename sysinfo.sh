@@ -140,12 +140,12 @@ while IFS=',' read -r name status; do
     image_digest=$(docker image inspect --format='{{.Id}}' "$image" 2> /dev/null)
     container_digest=$(docker inspect --format='{{.Image}}' "$name" 2> /dev/null)
     update_status=""
-    [[ "$image_digest" != "$container_digest" ]] && update_status=' ⏺'
-    [[ "${status}" == *"Created"* ]] && status_text="${white}⏹${white}"
-    [[ "${status}" == *"Exited"* ]] && status_text="${red}⏹${white}"
-    [[ "${status}" == *"Up"* ]] && status_text="${green}⏵${white}"
-    [[ "${status}" == *"Paused"* ]] && status_text="${yellow}⏸${white}"
-    out+="${name}${update_status},${status_text},┆ "
+    [[ "$image_digest" != "$container_digest" ]] && update_status=' *'
+    [[ "${status}" == *"Created"* ]] && status_text="${white}x${white}"
+    [[ "${status}" == *"Exited"* ]] && status_text="${red}x${white}"
+    [[ "${status}" == *"Up"* ]] && status_text="${green}>${white}"
+    [[ "${status}" == *"Paused"* ]] && status_text="${yellow}x${white}"
+    out+="${name}${update_status},${status_text},| "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
@@ -162,7 +162,7 @@ images_dangling=$(docker images --format '{{.ID}}' --filter "dangling=true" | wc
 printf "\ndocker status:\n"
 printf "  Containers : %s (%s running, %s exited, %s created)\n" "${containers_all}" "${containers_running}" "${containers_exited}" "${containers_created}"
 printf "  Images     : %s (%s dangling)\n\n" "${images_all}" "${images_dangling}"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
 [[ -z ${out} ]] && printf '%b'  "  no containers\n"
 
 #######################################################
@@ -179,15 +179,15 @@ out=""
 while IFS= read -r vm; do
     name=$(xargs <<< "${vm:${column2}:${column2_length}}")
     status=$(xargs <<< "${vm:${column3}}")
-    status_text=
-    [[ "${status}" == "running" ]] && status_text="${green}⏵${white}"
-    [[ "${status}" == "paused" ]] && status_text="${yellow}⏸${white}"
-    [[ "${status}" == "shut off" ]] && status_text="${red}⏹${white}"
-    [[ "${status}" == "crashed" ]] && status_text="${red}✖${white}"
-    [[ "${status}" == "pmsuspended" ]] && status_text="${yellow}⏾${white}"
-    [[ "${status}" == "idle" ]] && status_text="${yellow}⏯${white}"
-    [[ "${status}" == "in shutdown" ]] && status_text="${red}⏺${white}"
-    out+="${name}¥${status_text}¥┆ "
+    status_text=""
+    [[ "${status}" == "running" ]] && status_text="${green}>${white}"
+    [[ "${status}" == "paused" ]] && status_text="${yellow}x${white}"
+    [[ "${status}" == "shut off" ]] && status_text="${red}x${white}"
+    [[ "${status}" == "crashed" ]] && status_text="${red}X${white}"
+    [[ "${status}" == "pmsuspended" ]] && status_text="${yellow}zZ${white}"
+    [[ "${status}" == "idle" ]] && status_text="${yellow}o${white}"
+    [[ "${status}" == "in shutdown" ]] && status_text="${red}o${white}"
+    out+="${name}¥${status_text}¥| "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
@@ -195,7 +195,7 @@ while IFS= read -r vm; do
 done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 
 printf "\nvm status:\n"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts '¥' -o ' ' | sed -e 's/^/  ┆ /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts '¥' -o ' ' | sed -e 's/^/  | /'
 [[ -z ${out} ]] && printf '%b'  "  no virtual machines\n"
 
 #######################################################
@@ -207,9 +207,9 @@ out=""
 while read -r service; do
     status=$(systemctl is-active "${service}" 2> /dev/null)
     status_text=""
-    [[ "${status}" == "active" ]] && status_text="${green}⏵${white}"
-    [[ "${status}" == "inactive" ]] && status_text="${red}⏹${white}"
-    out+="${service},${status_text},┆ "
+    [[ "${status}" == "active" ]] && status_text="${green}>${white}"
+    [[ "${status}" == "inactive" ]] && status_text="${red}x${white}"
+    out+="${service},${status_text},| "
     if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
@@ -217,7 +217,7 @@ while read -r service; do
 done < <(tr , '\n' <<< "${services}" | sort | sed -e '/^$/d')
 
 [[ -n ${out} ]] && printf "\nsystemd services:\n"
-[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
+[[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
 
 #######################################################
 ## SAMBA                                             ##
@@ -226,9 +226,9 @@ out=""
 while read -r share; do
     share_path=$(testparm -s -v --section-name "${share}" --parameter-name "path" 2> /dev/null)
     public=$(testparm -s -v --section-name "${share}" --parameter-name "public" 2> /dev/null)
-    if [[ ${public,,} == "no" ]]; then public="✘"; else public="✔"; fi
+    if [[ ${public,,} == "no" ]]; then public="x"; else public="v"; fi
     writeable=$(testparm -s -v --section-name "${share}" --parameter-name "writeable" 2> /dev/null)
-    if [[ ${writeable,,} == "no" ]]; then writeable="✘"; else writeable="✔"; fi
+    if [[ ${writeable,,} == "no" ]]; then writeable="x"; else writeable="v"; fi
     valid_users=$(testparm -s -v --section-name "${share}" --parameter-name "valid users" 2> /dev/null)
     read_list=$(testparm -s -v --section-name "${share}" --parameter-name "read list" 2> /dev/null)
     write_list=$(testparm -s -v --section-name "${share}" --parameter-name "write list" 2> /dev/null)
@@ -236,7 +236,7 @@ while read -r share; do
 done < <(testparm -s 2> /dev/null | grep '\[.*\]' | grep -v -E "global|homes|printers" | sed -e 's/\[//' -e 's/\]//')
 
 printf "\nsmb shares:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -o ' ┆ ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}" -N " ,Share,Path,Public,Writeable,Valid Users,Read List,Write List"
+[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}" -N " ,Share,Path,Public,Writeable,Valid Users,Read List,Write List"
 [[ -z ${out} ]] && printf '%b'  "  no shares exported\n"
 
 #######################################################
@@ -266,7 +266,7 @@ while read -r interface; do
 done < <(vnstat --json 2> /dev/null | jq -r '.interfaces | .[].name')
 
 [[ -n ${out} ]] && printf "\nnetwork stats:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' ┆ ' -s '|' -N " , , ,Rx,Tx,Total"
+[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|' -N " , , ,Rx,Tx,Total"
 
 #######################################################
 ## MEMORY                                            ##
@@ -290,11 +290,11 @@ while read -r line; do
 
     bar="${color}"
     for ((i=0; i<used_width; i++)); do
-        bar+="▰"
+        bar+="="
     done
     bar+="${white}${dim}"
     for ((i=used_width; i<bar_width; i++)); do
-        bar+="▰"
+        bar+="="
     done
     bar+="${undim}"
 
@@ -323,11 +323,11 @@ while read -r line; do
 
     bar="${color}"
     for ((i=0; i<used_width; i++)); do
-        bar+="▰"
+        bar+="="
     done
     bar+="${white}${dim}"
     for ((i=used_width; i<bar_width; i++)); do
-        bar+="▰"
+        bar+="="
     done
     bar+="${undim}"
 
@@ -387,7 +387,7 @@ while read -r disk; do
         json=$(smartctl -n standby -xj "/dev/${device}")
         temp=$(jq -r '.temperature.current' <<< "${json}")
         power_on_hours=$(jq -r '.power_on_time.hours' <<< "${json}")
-        health="✔"
+        health="ok"
         health_color=${green}
         if [[ ${tran} == "sata" ]] || [[ ${tran} == "sas" ]]; then
             pending=$(jq -r '.ata_smart_attributes.table[] | select(.id==197) | .raw.value' <<< "${json}")
@@ -412,14 +412,14 @@ while read -r disk; do
         fi
         [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02d°C' "$temp")"
     fi
-    [[ ${state} == "active/idle" ]] && state="$green⏺$white"
-    [[ ${state} == "standby" ]] && state="$dim⏺$white"
+    [[ ${state} == "active/idle" ]] && state="${green}o${white}"
+    [[ ${state} == "standby" ]] && state="${dim}o${white}"
     serial="|${serial}"; [[ ${DISK_STATUS_HIDE_SERIAL} == true ]] && serial=""
     out+="|${device_label}|${tran}|${model}${serial}|${temp_color}${temp}${white}|${health_color}${health}${white}|$(displaytime "${power_on_hours}")|${state}\n"
 done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
 
 printf "\ndisk status:\n"
-[[ -n ${out} ]] && printf '%b' " ${out}\n" | column -t -o ' ┆ ' -s '|' -N " ,Device,Tran,Model${serial_header},Temp,Health,Power On" | grep -v -E "${filter_disks}"
+[[ -n ${out} ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' -N " ,Device,Tran,Model${serial_header},Temp,Health,Power On" | grep -v -E "${filter_disks}"
 [[ -z ${out} ]] && printf '%b'  "  no physical disks\n"
 
 printf "\n"
