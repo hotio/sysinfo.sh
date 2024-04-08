@@ -367,7 +367,7 @@ while read -r disk; do
         json=$(smartctl -n standby -xj "/dev/${device}")
         temp=$(jq -r '.temperature.current' <<< "${json}")
         power_on_hours=$(jq -r '.power_on_time.hours' <<< "${json}")
-        health=healthy
+        health="✔"
         health_color=${green}
         if [[ ${tran} == "sata" ]] || [[ ${tran} == "sas" ]]; then
             pending=$(jq -r '.ata_smart_attributes.table[] | select(.id==197) | .raw.value' <<< "${json}")
