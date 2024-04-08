@@ -39,10 +39,10 @@ ups info:
     Load    : 20% / 140W
 
 docker status:
-  Containers : 4 (0 exited)
+  Containers : 4 (3 running, 1 exited, 0 created)
   Images     : 4 (0 dangling)
 
-  | hotio > | caddy > | cloudflareddns > | test > | 
+  | hotio > | caddy x | cloudflareddns > | test > | 
 
 vm status:
   | Ubuntu 22.04 > | Windows XP x | 
