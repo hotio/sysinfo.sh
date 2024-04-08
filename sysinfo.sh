@@ -141,6 +141,7 @@ while IFS=',' read -r name status; do
     container_digest=$(docker inspect --format='{{.Image}}' "$name" 2> /dev/null)
     update_status=""
     [[ "$image_digest" != "$container_digest" ]] && update_status=' ⏺'
+    [[ "${status}" == *"Created"* ]] && status_text="${white}⏹${white}"
     [[ "${status}" == *"Exited"* ]] && status_text="${red}⏹${white}"
     [[ "${status}" == *"Up"* ]] && status_text="${green}⏵${white}"
     [[ "${status}" == *"Paused"* ]] && status_text="${yellow}⏸${white}"
@@ -152,12 +153,14 @@ while IFS=',' read -r name status; do
 done < <(docker ps --all --format '{{.Names}},{{.Status}}' | sort -k1)
 
 containers_all=$(docker ps --all --format '{{.Names}}' | wc -l)
+containers_running=$(docker ps --all --format '{{.Names}}' --filter "status=running" | wc -l)
 containers_exited=$(docker ps --all --format '{{.Names}}' --filter "status=exited" | wc -l)
+containers_created=$(docker ps --all --format '{{.Names}}' --filter "status=created" | wc -l)
 images_all=$(docker images --format '{{.ID}}' | wc -l)
 images_dangling=$(docker images --format '{{.ID}}' --filter "dangling=true" | wc -l)
 
 printf "\ndocker status:\n"
-printf "  Containers : %s (%s exited)\n" "${containers_all}" "${containers_exited}"
+printf "  Containers : %s (%s running, %s exited, %s created)\n" "${containers_all}" "${containers_running}" "${containers_exited}" "${containers_created}"
 printf "  Images     : %s (%s dangling)\n\n" "${images_all}" "${images_dangling}"
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  ┆ /'
 [[ -z ${out} ]] && printf '%b'  "  no containers\n"
