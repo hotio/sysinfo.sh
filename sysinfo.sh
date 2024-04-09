@@ -254,7 +254,7 @@ done < <(tr , '\n' <<< "${services}" | sort | sed -e '/^$/d')
 #######################################################
 ## SAMBA                                             ##
 #######################################################
-out=""
+out="|${Bold}Share${Reset}|${Bold}Path${Reset}|${Bold}Public${Reset}|${Bold}Writeable${Reset}|${Bold}Valid Users${Reset}|${Bold}Read List${Reset}|${Bold}Write List${Reset}|\n"
 while read -r share; do
     share_path=$(testparm -s -v --section-name "${share}" --parameter-name "path" 2> /dev/null)
     public=$(testparm -s -v --section-name "${share}" --parameter-name "public" 2> /dev/null)
@@ -268,15 +268,15 @@ while read -r share; do
 done < <(testparm -s 2> /dev/null | grep '\[.*\]' | grep -v -E "global|homes|printers" | sed -e 's/\[//' -e 's/\]//')
 
 printf '%b' "\n${BWhite}${Black} smb shares ${Reset}\n\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}" -N " ,Share,Path,Public,Writeable,Valid Users,Read List,Write List"
-[[ -z ${out} ]] && printf '%b'  "  no shares exported\n"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}"
+[[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no shares exported\n"
 
 #######################################################
 ## NETWORK USAGE                                     ##
 #######################################################
-out=""
+out="|||${Bold}Rx${Reset}|${Bold}Tx${Reset}|${Bold}Total${Reset}|\n"
 while read -r interface; do
-    out+="|${interface}|||||\n"
+    out+="|${Bold}${interface}${Reset}|||||\n"
     results=$(vnstat --oneline "${interface}" 2> /dev/null)
     # today
     rx=$(awk -F ";" '{print $4}' <<< "${results}")
@@ -297,8 +297,8 @@ while read -r interface; do
     out+="||Total|${rx}|${tx}|${total}|\n"
 done < <(vnstat --json 2> /dev/null | jq -r '.interfaces | .[].name')
 
-[[ -n ${out} ]] && printf '%b' "\n${BWhite}${Black} network traffic ${Reset}\n\n"
-[[ -n ${out} ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|' -N " , , ,Rx,Tx,Total"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' "\n${BWhite}${Black} network traffic ${Reset}\n\n"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|'
 
 #######################################################
 ## MEMORY                                            ##
@@ -387,8 +387,8 @@ function displaytime {
     fi
 }
 
-serial_header=",Serial"; [[ "${DISK_STATUS_HIDE_SERIAL}" == true ]] && serial_header=""
-out=""
+serial_header="|${Bold}Serial${Reset}"; [[ "${DISK_STATUS_HIDE_SERIAL}" == true ]] && serial_header=""
+out="|${Bold}Device${Reset}|${Bold}Tran${Reset}|${Bold}Model${Reset}${serial_header}|${Bold}Temp${Reset}|${Bold}Health${Reset}|${Bold}Power On${Reset}|\n"
 while read -r disk; do
     device=$(jq -r '.name' <<< "${disk}")
     label=$(jq -r '.label' <<< "${disk}")
@@ -402,7 +402,7 @@ while read -r disk; do
         state=$(hdparm -C "/dev/${device}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
         smart_available=true
     else
-        state=" "
+        state=""
         smart_available=false
     fi
     temp=""
@@ -447,7 +447,7 @@ while read -r disk; do
 done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
 
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
-[[ -n "${out}" ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' -N " ,Device,Tran,Model${serial_header},Temp,Health,Power On" | grep -v -E "${DISK_STATUS_FILTER}"
-[[ -z "${out}" ]] && printf '%b'  "  no physical drives found\n"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${DISK_STATUS_FILTER}"
+[[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no physical drives found\n"
 
 printf "\n"
