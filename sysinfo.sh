@@ -5,11 +5,11 @@
 #######################################################
 ## CONFIGURATION                                     ##
 #######################################################
-COLUMNS_DOCKER=4
-COLUMNS_VM=3
-COLUMNS_SYSTEMD=5
-SMB_TABLE_WIDTH=120
+DOCKER_NUMBER_OF_COLUMNS=4
+VIRTUAL_MACHINES_NUMBER_OF_COLUMNS=3
+SYSTEMD_SERVICES_NUMBER_OF_COLUMNS=5
 SYSTEMD_SERVICES_MONITOR="ssh,docker"
+SMB_SHARES_TABLE_WIDTH=120
 IP_ADDRESSES_INTERFACE_FILTER="DONOTFILTER"
 #IP_ADDRESSES_INTERFACE_FILTER="eth0|enp1s0"
 DISK_SPACE_USAGE_FILTER="DONOTFILTER"
@@ -200,7 +200,7 @@ while IFS=',' read -r name status; do
     [[ "${status}" == *"Up"* ]]      && status_text="${Bold}${LightGreen}>${Reset}"
     [[ "${status}" == *"Paused"* ]]  && status_text="${Bold}${LightYellow}x${Reset}"
     out+="${name}${update_status},${status_text},| "
-    if [ $(((i+1) % COLUMNS_DOCKER)) -eq 0 ]; then
+    if [ $(((i+1) % DOCKER_NUMBER_OF_COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -240,7 +240,7 @@ while IFS= read -r vm; do
     [[ "${status}" == "idle" ]]        && status_text="${Bold}${LightYellow}o${Reset}"
     [[ "${status}" == "in shutdown" ]] && status_text="${Bold}${LightRed}o${Reset}"
     out+="${name}¥${status_text}¥| "
-    if [ $(((i+1) % COLUMNS_VM)) -eq 0 ]; then
+    if [ $(((i+1) % VIRTUAL_MACHINES_NUMBER_OF_COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -261,7 +261,7 @@ while read -r service; do
     [[ "${status}" == "active" ]]   && status_text="${Bold}${LightGreen}>${Reset}"
     [[ "${status}" == "inactive" ]] && status_text="${Bold}${LightRed}x${Reset}"
     out+="${service},${status_text},| "
-    if [ $(((i+1) % COLUMNS_SYSTEMD)) -eq 0 ]; then
+    if [ $(((i+1) % SYSTEMD_SERVICES_NUMBER_OF_COLUMNS)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -287,7 +287,7 @@ while read -r share; do
 done < <(testparm -s 2> /dev/null | grep '\[.*\]' | grep -v -E "global|homes|printers" | sed -e 's/\[//' -e 's/\]//')
 
 printf '%b' "\n${BWhite}${Black} smb shares ${Reset}\n\n"
-[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_TABLE_WIDTH}"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_SHARES_TABLE_WIDTH}"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no shares exported\n"
 
 #######################################################
