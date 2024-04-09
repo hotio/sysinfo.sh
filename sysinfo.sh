@@ -9,18 +9,25 @@ COLUMNS_DOCKER=4
 COLUMNS_VM=3
 COLUMNS_SYSTEMD=5
 SMB_TABLE_WIDTH=120
-DISK_STATUS_HIDE_SERIAL=true
-DISK_USAGE_FILTER="DONOTFILTER"
-#DISK_USAGE_FILTER="user|user0|libvirt|disk"
-DISK_STATUS_FILTER="DONOTFILTER"
-#DISK_STATUS_FILTER="sda|sas"
-IP_ADDRESSES_INTERFACE_FILTER="DONOTFILTER"
-#IP_ADDRESSES_INTERFACE_FILTER="eth0"
 SYSTEMD_SERVICES_MONITOR="ssh,docker"
+IP_ADDRESSES_INTERFACE_FILTER="DONOTFILTER"
+#IP_ADDRESSES_INTERFACE_FILTER="eth0|enp1s0"
+DISK_SPACE_USAGE_FILTER="DONOTFILTER"
+#DISK_SPACE_USAGE_FILTER="user|user0|libvirt|disk"
+PHYSICAL_DRIVES_ROW_FILTER="DONOTFILTER"
+#PHYSICAL_DRIVES_ROW_FILTER="sda|sas"
+PHYSICAL_DRIVES_COLUMN_FILTER="DONOTFILTER"
+#PHYSICAL_DRIVES_COLUMN_FILTER="Label|Serial|Power On"
 #######################################################
 
+#######################################################
+## LOAD CONFIGURATION FROM FILE                      ##
+#######################################################
 [[ -f /etc/default/hotio-sysinfo ]] && source /etc/default/hotio-sysinfo
 
+#######################################################
+## COLOR DEFINITIONS                                 ##
+#######################################################
 Reset='\e[0m'
 Bold='\e[1m'
 Faint='\e[2m'
@@ -61,7 +68,26 @@ White='\e[97m'
 BWhite='\e[107m'
 
 #######################################################
-## SYSINFO                                           ##
+## FUNCTIONS                                         ##
+#######################################################
+sec2min() { printf "%d:%02d" "$((10#$1 / 60))" "$((10#$1 % 60))"; }
+
+function displaytime {
+    if [[ "${1}" != "" ]]; then
+        local T=$1
+        local Y=$((T/24/365))
+        local D=$((T/24%365))
+        local H=$((T%24))
+        printf '%02dy ' "${Y}"
+        printf '%03dd ' "${D}"
+        printf '%02dh' "${H}"
+    else
+        printf '%s' "${1}"
+    fi
+}
+
+#######################################################
+## SYSTEM INFO                                       ##
 #######################################################
 DISTRO=$(source /etc/os-release && echo "${PRETTY_NAME}")
 KERNEL=$(uname -sr)
@@ -134,10 +160,8 @@ printf '%b' "\n${BWhite}${Black} thermals ${Reset}\n\n"
 [[ -z ${out} ]] && printf '%b'  "  no thermals found\n"
 
 #######################################################
-## UPS                                               ##
+## UPS INFO                                          ##
 #######################################################
-sec2min() { printf "%d:%02d" "$((10#$1 / 60))" "$((10#$1 % 60))"; }
-
 out=""
 while read -r line; do
     ups_stats=$(upsc "${line}" 2> /dev/null)
@@ -164,8 +188,6 @@ printf '%b' "\n${BWhite}${Black} ups info ${Reset}\n"
 #######################################################
 ## DOCKER                                            ##
 #######################################################
-COLUMNS="${COLUMNS_DOCKER}"
-
 out=""
 while IFS=',' read -r name status; do
     image=$(docker inspect --format='{{.Config.Image}}' "${name}" 2> /dev/null)
@@ -178,7 +200,7 @@ while IFS=',' read -r name status; do
     [[ "${status}" == *"Up"* ]]      && status_text="${Bold}${LightGreen}>${Reset}"
     [[ "${status}" == *"Paused"* ]]  && status_text="${Bold}${LightYellow}x${Reset}"
     out+="${name}${update_status},${status_text},| "
-    if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
+    if [ $(((i+1) % COLUMNS_DOCKER)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -198,10 +220,8 @@ printf "  Images     : %s (%s dangling)\n\n" "${images_all}" "${images_dangling}
 [[ -z ${out} ]] && printf '%b'  "  no containers found\n"
 
 #######################################################
-## VM                                                ##
+## VIRTUAL MACHINES                                  ##
 #######################################################
-COLUMNS="${COLUMNS_VM}"
-
 virsh_output=$(virsh list --all 2> /dev/null)
 column2=$(grep -ob "Name" <<< "${virsh_output}" | grep -oE "[0-9]+")
 column3=$(grep -ob "State" <<< "${virsh_output}" | grep -oE "[0-9]+")
@@ -220,7 +240,7 @@ while IFS= read -r vm; do
     [[ "${status}" == "idle" ]]        && status_text="${Bold}${LightYellow}o${Reset}"
     [[ "${status}" == "in shutdown" ]] && status_text="${Bold}${LightRed}o${Reset}"
     out+="${name}¥${status_text}¥| "
-    if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
+    if [ $(((i+1) % COLUMNS_VM)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -233,7 +253,6 @@ printf '%b' "\n${BWhite}${Black} virtual machines ${Reset}\n\n"
 #######################################################
 ## SYSTEMD SERVICES                                  ##
 #######################################################
-COLUMNS="${COLUMNS_SYSTEMD}"
 type -p systemctl > /dev/null && services="${SYSTEMD_SERVICES_MONITOR}"
 out=""
 while read -r service; do
@@ -242,7 +261,7 @@ while read -r service; do
     [[ "${status}" == "active" ]]   && status_text="${Bold}${LightGreen}>${Reset}"
     [[ "${status}" == "inactive" ]] && status_text="${Bold}${LightRed}x${Reset}"
     out+="${service},${status_text},| "
-    if [ $(((i+1) % COLUMNS)) -eq 0 ]; then
+    if [ $(((i+1) % COLUMNS_SYSTEMD)) -eq 0 ]; then
         out+="\n"
     fi
     i=$((i+1))
@@ -252,7 +271,7 @@ done < <(tr , '\n' <<< "${services}" | sort | sed -e '/^$/d')
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
 
 #######################################################
-## SAMBA                                             ##
+## SMB SHARES                                        ##
 #######################################################
 out="|${Bold}Share${Reset}|${Bold}Path${Reset}|${Bold}Public${Reset}|${Bold}Writeable${Reset}|${Bold}Valid Users${Reset}|${Bold}Read List${Reset}|${Bold}Write List${Reset}|\n"
 while read -r share; do
@@ -272,7 +291,7 @@ printf '%b' "\n${BWhite}${Black} smb shares ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no shares exported\n"
 
 #######################################################
-## NETWORK USAGE                                     ##
+## NETWORK TRAFFIC                                   ##
 #######################################################
 out="|||${Bold}Rx${Reset}|${Bold}Tx${Reset}|${Bold}Total${Reset}|\n"
 while read -r interface; do
@@ -301,7 +320,7 @@ done < <(vnstat --json 2> /dev/null | jq -r '.interfaces | .[].name')
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|'
 
 #######################################################
-## MEMORY                                            ##
+## MEMORY USAGE                                      ##
 #######################################################
 max_usage=95
 warn_usage=80
@@ -335,7 +354,7 @@ while read -r line; do
 done < <(free --bytes | awk '$2 != 0' | tail -n+2)
 
 #######################################################
-## DISKSPACE                                         ##
+## DISK SPACE USAGE                                  ##
 #######################################################
 max_usage=95
 warn_usage=80
@@ -362,10 +381,10 @@ while read -r line; do
 
     awk '{ printf("  %-32s%+3s used out of %+4s\n", $1, $2, $3); }' <<< "${line}"
     printf "  %b\n" "${bar}"
-done < <(df -H -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_USAGE_FILTER}" | tail -n+2)
+done < <(df -H -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2)
 
 #######################################################
-## DISKSTATUS                                        ##
+## PHYSICAL DRIVES                                   ##
 #######################################################
 WARN_TEMP_HDD=35
 MAX_TEMP_HDD=40
@@ -373,27 +392,21 @@ WARN_TEMP_SSD=40
 MAX_TEMP_SSD=60
 SSD_LIFE_TRESHOLD=90
 
-function displaytime {
-    if [[ "${1}" != "" ]]; then
-        local T=$1
-        local Y=$((T/24/365))
-        local D=$((T/24%365))
-        local H=$((T%24))
-        printf '%02dy ' "${Y}"
-        printf '%03dd ' "${D}"
-        printf '%02dh' "${H}"
-    else
-        printf '%s' "${1}"
-    fi
-}
+state_header="|"
+device_header="|${Bold}Device${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"   && device_header=""
+label_header="|${Bold}Label${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Label"    && label_header=""
+tran_header="|${Bold}Tran${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran_header=""
+model_header="|${Bold}Model${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model_header=""
+serial_header="|${Bold}Serial${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial_header=""
+temp_header="|${Bold}Temp${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp_header=""
+health_header="|${Bold}Health${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health_header=""
+poweron_header="|${Bold}Power On${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron_header=""
 
-serial_header="|${Bold}Serial${Reset}"; [[ "${DISK_STATUS_HIDE_SERIAL}" == true ]] && serial_header=""
-out="|${Bold}Device${Reset}|${Bold}Tran${Reset}|${Bold}Model${Reset}${serial_header}|${Bold}Temp${Reset}|${Bold}Health${Reset}|${Bold}Power On${Reset}|\n"
+out="${state_header}${device_header}${label_header}${tran_header}${model_header}${serial_header}${temp_header}${health_header}${poweron_header}|\n"
+
 while read -r disk; do
     device=$(jq -r '.name' <<< "${disk}")
-    label=$(jq -r '.label' <<< "${disk}")
-    device_label="${device}"
-    [[ "${label}" != null ]] && device_label="${device} (${label})"
+    label=$(jq -r '.label' <<< "${disk}"); [[ "${label}" == null ]] && label=""
     capacity=$(jq -r '.size' <<< "${disk}" | numfmt --to si --round nearest)
     model="$(jq -r '.model' <<< "${disk}") (${capacity})"
     serial=$(jq -r '.serial' <<< "${disk}")
@@ -441,13 +454,27 @@ while read -r disk; do
         [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02d°C' "${temp}")"
     fi
     [[ "${state}" == "active/idle" ]] && state="${Bold}${LightGreen}o${Reset}"
-    [[ "${state}" == "standby" ]] && state="${Faint}o${Reset}"
-    serial="|${serial}"; [[ "${DISK_STATUS_HIDE_SERIAL}" == true ]] && serial=""
-    out+="|${device_label}|${tran}|${model}${serial}|${temp_color}${temp}${Reset}|${health_color}${health}${Reset}|$(displaytime "${power_on_hours}")|${state}\n"
+    [[ "${state}" == "standby" ]]     && state="${Faint}o${Reset}"
+
+    state="|${state}"
+    device="|${device}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"   && device=""
+    label="|${label}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Label"    && label=""
+    tran="|${tran}";                               grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran=""
+    model="|${model}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model=""
+    serial="|${serial}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial=""
+    temp="|${temp_color}${temp}${Reset}";          grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp=""
+    health="|${health_color}${health}${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health=""
+    poweron="|$(displaytime "${power_on_hours}")"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron=""
+
+    out+="${state}${device}${label}${tran}${model}${serial}${temp}${health}${poweron}|\n"
+
 done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
 
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
-[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${DISK_STATUS_FILTER}"
+[[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${PHYSICAL_DRIVES_ROW_FILTER}"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no physical drives found\n"
 
+#######################################################
+## THE END                                           ##
+#######################################################
 printf "\n"
