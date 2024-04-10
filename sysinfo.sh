@@ -431,11 +431,12 @@ label_header="|${Bold}Label${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_
 tran_header="|${Bold}Tran${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran_header=""
 model_header="|${Bold}Model${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model_header=""
 serial_header="|${Bold}Serial${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial_header=""
+revision_header="|${Bold}Revision${Reset}";grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision" && revision_header=""
 temp_header="|${Bold}Temp${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp_header=""
 health_header="|${Bold}Health${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health_header=""
 poweron_header="|${Bold}Power On${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron_header=""
 
-out="${state_header}${device_header}${label_header}${tran_header}${model_header}${serial_header}${temp_header}${health_header}${poweron_header}|\n"
+out="${state_header}${device_header}${label_header}${tran_header}${model_header}${serial_header}${revision_header}${temp_header}${health_header}${poweron_header}|\n"
 
 while read -r disk; do
     device=$(jq -r '.name' <<< "${disk}")
@@ -443,6 +444,7 @@ while read -r disk; do
     capacity=$(jq -r '.size' <<< "${disk}" | numfmt --to si --round nearest)
     model="$(jq -r '.model' <<< "${disk}") (${capacity})"
     serial=$(jq -r '.serial' <<< "${disk}")
+    revision=$(jq -r '.rev' <<< "${disk}")
     tran=$(jq -r '.tran' <<< "${disk}")
     if smartctl --info "/dev/${device}" | grep -q 'SMART support is: Enabled'; then
         state=$(hdparm -C "/dev/${device}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
@@ -495,11 +497,12 @@ while read -r disk; do
     tran="|${tran}";                               grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran=""
     model="|${model}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model=""
     serial="|${serial}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial=""
+    revision="|${revision}";                       grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision" && revision=""
     temp="|${temp_color}${temp}${Reset}";          grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp=""
     health="|${health_color}${health}${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health=""
     poweron="|$(displaytime "${power_on_hours}")"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron=""
 
-    out+="${state}${device}${label}${tran}${model}${serial}${temp}${health}${poweron}|\n"
+    out+="${state}${device}${label}${tran}${model}${serial}${revision}${temp}${health}${poweron}|\n"
 
 done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
 
