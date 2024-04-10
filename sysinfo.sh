@@ -440,7 +440,7 @@ out="${state_header}${device_header}${label_header}${tran_header}${model_header}
 
 while read -r disk; do
     device=$(jq -r '.name' <<< "${disk}")
-    label=$(lsblk --list --output NAME,LABEL,FSTYPE --noheadings --json "/dev/${device}" | jq -r --arg device "${device}" '.blockdevices[] | select(.name != $device) | "[\(.name): \(.label // "---") (\(.fstype // "---"))]"' | awk 'NR > 1 { printf(",") } {printf "%s",$0}')
+    label=$(lsblk --list --output NAME,LABEL,FSTYPE --noheadings --json "/dev/${device}" | jq -r --arg device "${device}" '.blockdevices[] | select(.name != $device) | "[\(.name): \(.fstype // "----") (\(.label // "----"))]"' | awk 'NR > 1 { printf(", ") } {printf "%s",$0}')
     capacity=$(jq -r '.size' <<< "${disk}" | numfmt --to si --round nearest)
     model="$(jq -r '.model' <<< "${disk}") (${capacity})"
     serial=$(jq -r '.serial' <<< "${disk}")
