@@ -426,21 +426,21 @@ MAX_TEMP_SSD=60
 SSD_LIFE_TRESHOLD=90
 
 state_header="|"
-device_header="|${Bold}Device${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"   && device_header=""
-label_header="|${Bold}Label${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Label"    && label_header=""
-tran_header="|${Bold}Tran${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran_header=""
-model_header="|${Bold}Model${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model_header=""
-serial_header="|${Bold}Serial${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial_header=""
-revision_header="|${Bold}Revision${Reset}";grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision" && revision_header=""
-temp_header="|${Bold}Temp${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp_header=""
-health_header="|${Bold}Health${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health_header=""
-poweron_header="|${Bold}Power On${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron_header=""
+device_header="|${Bold}Device${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"     && device_header=""
+label_header="|${Bold}Partitions${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Partitions" && label_header=""
+tran_header="|${Bold}Tran${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"       && tran_header=""
+model_header="|${Bold}Model${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"      && model_header=""
+serial_header="|${Bold}Serial${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"     && serial_header=""
+revision_header="|${Bold}Revision${Reset}";grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision"   && revision_header=""
+temp_header="|${Bold}Temp${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"       && temp_header=""
+health_header="|${Bold}Health${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"     && health_header=""
+poweron_header="|${Bold}Power On${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On"   && poweron_header=""
 
 out="${state_header}${device_header}${label_header}${tran_header}${model_header}${serial_header}${revision_header}${temp_header}${health_header}${poweron_header}|\n"
 
 while read -r disk; do
     device=$(jq -r '.name' <<< "${disk}")
-    label=$(jq -r '.label' <<< "${disk}"); [[ "${label}" == null ]] && label=""
+    label=$(lsblk --list --output NAME,LABEL,FSTYPE --noheadings --json "/dev/${device}" | jq -r --arg device "${device}" '.blockdevices[] | select(.name != $device) | "[\(.name): \(.label // "---") (\(.fstype // "---"))]"' | awk 'NR > 1 { printf(",") } {printf "%s",$0}')
     capacity=$(jq -r '.size' <<< "${disk}" | numfmt --to si --round nearest)
     model="$(jq -r '.model' <<< "${disk}") (${capacity})"
     serial=$(jq -r '.serial' <<< "${disk}")
@@ -492,15 +492,15 @@ while read -r disk; do
     [[ "${state}" == "standby" ]]     && state="${Faint}o${Reset}"
 
     state="|${state}"
-    device="|${device}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"   && device=""
-    label="|${label}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Label"    && label=""
-    tran="|${tran}";                               grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"     && tran=""
-    model="|${model}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"    && model=""
-    serial="|${serial}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"   && serial=""
-    revision="|${revision}";                       grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision" && revision=""
-    temp="|${temp_color}${temp}${Reset}";          grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"     && temp=""
-    health="|${health_color}${health}${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"   && health=""
-    poweron="|$(displaytime "${power_on_hours}")"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On" && poweron=""
+    device="|${device}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"     && device=""
+    label="|${label}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Partitions" && label=""
+    tran="|${tran}";                               grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"       && tran=""
+    model="|${model}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"      && model=""
+    serial="|${serial}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"     && serial=""
+    revision="|${revision}";                       grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision"   && revision=""
+    temp="|${temp_color}${temp}${Reset}";          grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"       && temp=""
+    health="|${health_color}${health}${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"     && health=""
+    poweron="|$(displaytime "${power_on_hours}")"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On"   && poweron=""
 
     out+="${state}${device}${label}${tran}${model}${serial}${revision}${temp}${health}${poweron}|\n"
 
