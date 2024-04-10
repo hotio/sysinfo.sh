@@ -90,7 +90,7 @@ function displaytime {
 #######################################################
 ## SHOW HELP                                         ##
 #######################################################
-cli_options="${*} "
+grep -q -e '--' <<< "${*}" && cli_options="${*} "
 if grep -q -e '--help' <<< "${cli_options}"; then
     printf '%b' "Available options:\n  --system\n  --ip\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
     exit 0
