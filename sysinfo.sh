@@ -86,9 +86,20 @@ function displaytime {
     fi
 }
 
+
+#######################################################
+## SHOW HELP                                         ##
+#######################################################
+cli_options="${*} "
+if grep -q -e '--help' <<< "${cli_options}"; then
+    printf '%b' "Available options:\n  --system\n  --ip\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
+    exit 0
+fi
+
 #######################################################
 ## SYSTEM INFO                                       ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--system ' <<< "${cli_options}"; then
 DISTRO=$(source /etc/os-release && echo "${PRETTY_NAME}")
 KERNEL=$(uname -sr)
 UPTIME=$(uptime -p)
@@ -129,10 +140,12 @@ ${BWhite}${Black} system info ${Reset}
 "
 
 printf "%b" "${out}"
+fi
 
 #######################################################
 ## IP ADDRESSES                                      ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--ip ' <<< "${cli_options}"; then
 out=""
 json=$(ip --json addr 2> /dev/null)
 
@@ -144,10 +157,12 @@ done < <(jq -r '.[].ifname' <<< "${json}" | grep -v -E "${IP_ADDRESSES_INTERFACE
 printf '%b' "\n${BWhite}${Black} ip addresses ${Reset}\n\n"
 [[ -n ${out} ]] && printf '%b\n' "${out}" | sed 's/^,:/, /' | column -t -o ' ' -s ','
 [[ -z ${out} ]] && printf '%b'  "  none found\n"
+fi
 
 #######################################################
 ## THERMALS                                          ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--thermals ' <<< "${cli_options}"; then
 out=""
 while IFS=',' read -r line; do
     type=$(awk '{print $1}' <<< "${line}")
@@ -158,10 +173,12 @@ done < <(paste <(cat /sys/class/thermal/thermal_zone*/type 2> /dev/null) <(cat /
 printf '%b' "\n${BWhite}${Black} thermals ${Reset}\n\n"
 [[ -n ${out} ]] && printf '%b' "${out}" | column -ts ',' -o ' '
 [[ -z ${out} ]] && printf '%b'  "  no thermals found\n"
+fi
 
 #######################################################
 ## UPS INFO                                          ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--ups ' <<< "${cli_options}"; then
 out=""
 while read -r line; do
     ups_stats=$(upsc "${line}" 2> /dev/null)
@@ -184,10 +201,12 @@ done < <(grep ^MONITOR /etc/nut/upsmon.conf | awk '{print $2}')
 printf '%b' "\n${BWhite}${Black} ups info ${Reset}\n"
 [[ -n ${out} ]] && printf '%b' "${out}"
 [[ -z ${out} ]] && printf '%b'  "\n  no ups found\n"
+fi
 
 #######################################################
 ## DOCKER                                            ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--docker ' <<< "${cli_options}"; then
 out=""
 while IFS=',' read -r name status; do
     image=$(docker inspect --format='{{.Config.Image}}' "${name}" 2> /dev/null)
@@ -218,10 +237,12 @@ printf "  Containers : %s (%s running, %s exited, %s created)\n" "${containers_a
 printf "  Images     : %s (%s dangling)\n\n" "${images_all}" "${images_dangling}"
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
 [[ -z ${out} ]] && printf '%b'  "  no containers found\n"
+fi
 
 #######################################################
 ## VIRTUAL MACHINES                                  ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--vm ' <<< "${cli_options}"; then
 virsh_output=$(virsh list --all 2> /dev/null)
 column2=$(grep -ob "Name" <<< "${virsh_output}" | grep -oE "[0-9]+")
 column3=$(grep -ob "State" <<< "${virsh_output}" | grep -oE "[0-9]+")
@@ -249,10 +270,12 @@ done < <(sed -e '1,2d' -e '/^$/d' <<< "${virsh_output}")
 printf '%b' "\n${BWhite}${Black} virtual machines ${Reset}\n\n"
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts '¥' -o ' ' | sed -e 's/^/  | /'
 [[ -z ${out} ]] && printf '%b'  "  no virtual machines found\n"
+fi
 
 #######################################################
 ## SYSTEMD SERVICES                                  ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--systemd ' <<< "${cli_options}"; then
 type -p systemctl > /dev/null && services="${SYSTEMD_SERVICES_MONITOR}"
 out=""
 while read -r service; do
@@ -269,10 +292,12 @@ done < <(tr , '\n' <<< "${services}" | sort | sed -e '/^$/d')
 
 [[ -n ${out} ]] && printf '%b' "\n${BWhite}${Black} systemd services ${Reset}\n\n"
 [[ -n ${out} ]] && printf '%b' "${out}\n" | column -ts ',' -o ' ' | sed -e 's/^/  | /'
+fi
 
 #######################################################
 ## SMB SHARES                                        ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--smb ' <<< "${cli_options}"; then
 out="|${Bold}Share${Reset}|${Bold}Path${Reset}|${Bold}Public${Reset}|${Bold}Writeable${Reset}|${Bold}Valid Users${Reset}|${Bold}Read List${Reset}|${Bold}Write List${Reset}|\n"
 while read -r share; do
     share_path=$(testparm -s -v --section-name "${share}" --parameter-name "path" 2> /dev/null)
@@ -289,10 +314,12 @@ done < <(testparm -s 2> /dev/null | grep '\[.*\]' | grep -v -E "global|homes|pri
 printf '%b' "\n${BWhite}${Black} smb shares ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -o ' | ' -s '|' --table-wrap 6,7,8 --output-width "${SMB_SHARES_TABLE_WIDTH}"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no shares exported\n"
+fi
 
 #######################################################
 ## NETWORK TRAFFIC                                   ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--network ' <<< "${cli_options}"; then
 out="|||${Bold}Rx${Reset}|${Bold}Tx${Reset}|${Bold}Total${Reset}|\n"
 while read -r interface; do
     out+="|${Bold}${interface}${Reset}|||||\n"
@@ -318,10 +345,12 @@ done < <(vnstat --json 2> /dev/null | jq -r '.interfaces | .[].name')
 
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' "\n${BWhite}${Black} network traffic ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}" | column -t -R '4,5,6' -o ' | ' -s '|'
+fi
 
 #######################################################
 ## MEMORY USAGE                                      ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--memory ' <<< "${cli_options}"; then
 max_usage=95
 warn_usage=80
 bar_width=52
@@ -352,10 +381,12 @@ while read -r line; do
     printf "  %-31s%+3s used out of %+5s\n" "${title,,}" "${usage_perc}%" "${total}"
     printf "  %b\n" "${bar}"
 done < <(free --bytes | awk '$2 != 0' | tail -n+2)
+fi
 
 #######################################################
 ## DISK SPACE USAGE                                  ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--diskspace ' <<< "${cli_options}"; then
 max_usage=95
 warn_usage=80
 bar_width=52
@@ -382,10 +413,12 @@ while read -r line; do
     awk '{ printf("  %-32s%+3s used out of %+4s\n", $1, $2, $3); }' <<< "${line}"
     printf "  %b\n" "${bar}"
 done < <(df -H -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2)
+fi
 
 #######################################################
 ## PHYSICAL DRIVES                                   ##
 #######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--drives ' <<< "${cli_options}"; then
 WARN_TEMP_HDD=35
 MAX_TEMP_HDD=40
 WARN_TEMP_SSD=40
@@ -473,6 +506,7 @@ done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,R
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${PHYSICAL_DRIVES_ROW_FILTER}"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no physical drives found\n"
+fi
 
 #######################################################
 ## THE END                                           ##
