@@ -17,7 +17,7 @@ DISK_SPACE_USAGE_FILTER="DONOTFILTER"
 PHYSICAL_DRIVES_ROW_FILTER="DONOTFILTER"
 #PHYSICAL_DRIVES_ROW_FILTER="sda|sas"
 PHYSICAL_DRIVES_COLUMN_FILTER="DONOTFILTER"
-#PHYSICAL_DRIVES_COLUMN_FILTER="Label|Serial|Power On"
+#PHYSICAL_DRIVES_COLUMN_FILTER="Partitions|Serial|Power On"
 #######################################################
 
 #######################################################
@@ -421,90 +421,90 @@ fi
 if [[ -z "${cli_options}" ]] || grep -q -e '--drives ' <<< "${cli_options}"; then
 WARN_TEMP_HDD=35
 MAX_TEMP_HDD=40
-WARN_TEMP_SSD=40
-MAX_TEMP_SSD=60
-SSD_LIFE_TRESHOLD=90
+WARN_TEMP_NVME=40
+MAX_TEMP_NVME=60
+LIFE_TRESHOLD_NVME=90
 
-state_header="|"
-device_header="|${Bold}Device${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"     && device_header=""
-label_header="|${Bold}Partitions${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Partitions" && label_header=""
-tran_header="|${Bold}Tran${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"       && tran_header=""
-model_header="|${Bold}Model${Reset}";      grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"      && model_header=""
-serial_header="|${Bold}Serial${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"     && serial_header=""
-revision_header="|${Bold}Revision${Reset}";grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision"   && revision_header=""
-temp_header="|${Bold}Temp${Reset}";        grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"       && temp_header=""
-health_header="|${Bold}Health${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"     && health_header=""
-poweron_header="|${Bold}Power On${Reset}"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On"   && poweron_header=""
-
-out="${state_header}${device_header}${label_header}${tran_header}${model_header}${serial_header}${revision_header}${temp_header}${health_header}${poweron_header}|\n"
+headers="Dev\nPartitions\nTran\nModel\nSize\nSerial\nRev\nTemp\nHealth\nPower On"
+while read -r header; do
+    echo -n "$header" | grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" || table_headers+="|${Bold}${header}${Reset}"
+done < <(echo -e "${headers}")
+out="|${table_headers}|\n"
 
 while read -r disk; do
-    device=$(jq -r '.name' <<< "${disk}")
-    label=$(lsblk --list --output NAME,LABEL,FSTYPE --noheadings --json "/dev/${device}" | jq -r --arg device "${device}" '.blockdevices[] | select(.name != $device) | "[\(.name): \(.fstype // "----") (\(.label // "----"))]"' | awk 'NR > 1 { printf(", ") } {printf "%s",$0}')
-    capacity=$(jq -r '.size' <<< "${disk}" | numfmt --to si --round nearest)
-    model="$(jq -r '.model' <<< "${disk}") (${capacity})"
-    serial=$(jq -r '.serial' <<< "${disk}")
-    revision=$(jq -r '.rev' <<< "${disk}")
-    tran=$(jq -r '.tran' <<< "${disk}")
-    if smartctl --info "/dev/${device}" | grep -q 'SMART support is: Enabled'; then
-        state=$(hdparm -C "/dev/${device}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
-        smart_available=true
-    else
-        state=""
-        smart_available=false
-    fi
-    temp=""
-    power_on_hours=""
-    health=""
-    temp_color=""
-    health_color=""
+    unset path state device part tran model size serial revision temp health poweron pending reallocatd used_life
 
-    if [[ "${smart_available}" == true ]] && [[ "${state}" == "active/idle" ]]; then
-        json=$(smartctl -n standby -xj "/dev/${device}")
+    path=$(jq -r '.path // empty' <<< "${disk}")
+    device=$(jq -r '.name // empty' <<< "${disk}")
+    part=$(jq -re 'try .children[] | select(.type == "part") | "\(.name)[\(.fstype // ""):\(.label // "")]"' <<< "${disk}" | awk 'NR > 1 { printf(", ") } {printf "%s",$0}' | sed -e 's/\[:/\[/g' -e 's/:]/]/g' -e 's/\[]//g')
+    tran=$(jq -r '.tran // empty' <<< "${disk}")
+    model=$(jq -r '.model // empty' <<< "${disk}")
+    size=$(printf "%4s" "$(jq -r '.size // empty' <<< "${disk}" | numfmt --to si --round nearest)")
+    serial=$(jq -r '.serial // empty' <<< "${disk}")
+    revision=$(jq -r '.rev // empty' <<< "${disk}")
+
+    if smartctl --info "${path}" | grep -q 'SMART support is: Enabled'; then
+        state=$(hdparm -C "${path}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
+    fi
+
+    if [[ "${state}" == "active/idle" ]]; then
+        json=$(smartctl -n standby -xj "${path}")
         temp=$(jq -r '.temperature.current' <<< "${json}")
-        power_on_hours=$(jq -r '.power_on_time.hours' <<< "${json}")
-        health="ok"
-        health_color="${LightGreen}"
+        health="${LightGreen}ok${Reset}"
+        poweron="$(displaytime "$(jq -r '.power_on_time.hours' <<< "${json}")")"
         if [[ "${tran}" == "sata" ]] || [[ "${tran}" == "sas" ]]; then
             pending=$(jq -r '.ata_smart_attributes.table[] | select(.id==197) | .raw.value' <<< "${json}")
             reallocated=$(jq -r '.ata_smart_attributes.table[] | select(.id==5) | .raw.value' <<< "${json}")
             if [[ "${pending}" -gt 0 ]] || [[ "${reallocated}" -gt 0 ]]; then
-                health_color="${LightYellow}"
-                health="${pending} pending / ${reallocated} reallocated"
+                health="${LightYellow}${pending} pending / ${reallocated} reallocated${Reset}"
             fi
-            [[ "${temp}" -ge "0" ]]                && temp_color="${LightGreen}"
-            [[ "${temp}" -ge "${WARN_TEMP_HDD}" ]] && temp_color="${LightYellow}"
-            [[ "${temp}" -ge "${MAX_TEMP_HDD}" ]]  && temp_color="${LightRed}"
+            if [[ "${temp}" -ge "${MAX_TEMP_HDD}" ]]; then
+                temp="${LightRed}$(printf '%02d°C' "${temp}")${Reset}"
+            elif [[ "${temp}" -ge "${WARN_TEMP_HDD}" ]]; then
+                temp="${LightYellow}$(printf '%02d°C' "${temp}")${Reset}"
+            else
+                temp="${LightGreen}$(printf '%02d°C' "${temp}")${Reset}"
+            fi
         fi
         if [[ "${tran}" == "nvme" ]]; then
-            used=$(jq -r '.nvme_smart_health_information_log.percentage_used' <<< "${json}")
-            if [[ "${used}" -ge "${SSD_LIFE_TRESHOLD}" ]]; then
-                health_color="${LightYellow}"
-                health="$((100-used))% life remaining"
+            used_life=$(jq -r '.nvme_smart_health_information_log.percentage_used' <<< "${json}")
+            if [[ "${used_life}" -ge "${LIFE_TRESHOLD_NVME}" ]]; then
+                health="${LightYellow}$((100-used_life))% life remaining${Reset}"
             fi
-            [[ "${temp}" -ge "0" ]] && temp_color="${LightGreen}"
-            [[ "${temp}" -ge "${WARN_TEMP_SSD}" ]] && temp_color="${LightYellow}"
-            [[ "${temp}" -ge "${MAX_TEMP_SSD}" ]]  && temp_color="${LightRed}"
+            if [[ "${temp}" -ge "${MAX_TEMP_NVME}" ]]; then
+                temp="${LightRed}$(printf '%02d°C' "${temp}")${Reset}"
+            elif [[ "${temp}" -ge "${WARN_TEMP_NVME}" ]]; then
+                temp="${LightYellow}$(printf '%02d°C' "${temp}")${Reset}"
+            else
+                temp="${LightGreen}$(printf '%02d°C' "${temp}")${Reset}"
+            fi
         fi
-        [[ "${temp}" =~ ^[0-9]+$ ]] && temp="$(printf '%02d°C' "${temp}")"
     fi
-    [[ "${state}" == "active/idle" ]] && state="${Bold}${LightGreen}o${Reset}"
-    [[ "${state}" == "standby" ]]     && state="${Faint}o${Reset}"
 
-    state="|${state}"
-    device="|${device}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Device"     && device=""
-    label="|${label}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Partitions" && label=""
-    tran="|${tran}";                               grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Tran"       && tran=""
-    model="|${model}";                             grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Model"      && model=""
-    serial="|${serial}";                           grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Serial"     && serial=""
-    revision="|${revision}";                       grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Revision"   && revision=""
-    temp="|${temp_color}${temp}${Reset}";          grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Temp"       && temp=""
-    health="|${health_color}${health}${Reset}";    grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Health"     && health=""
-    poweron="|$(displaytime "${power_on_hours}")"; grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" <<< "Power On"   && poweron=""
+    if [[ "${state}" == "active/idle" ]]; then
+        state="${Bold}${LightGreen}o${Reset}"
+    elif [[ "${state}" == "standby" ]]; then
+        state="${Faint}o${Reset}"
+    else
+        state="${Faint}-${Reset}"
+    fi
 
-    out+="${state}${device}${label}${tran}${model}${serial}${revision}${temp}${health}${poweron}|\n"
-
-done < <(lsblk --list --nodeps --bytes --output NAME,LABEL,VENDOR,MODEL,SERIAL,REV,SIZE,TYPE,TRAN --json | jq -r '.blockdevices' | jq -c '.[]|select(.tran=="usb" or .tran=="sata" or .tran=="sas" or .tran=="nvme")')
+    unset table_data
+    while read -r header; do
+        echo -n "$header" | grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" && continue
+        [[ "${header}" == "Dev"* ]]        && table_data+="|${device}"
+        [[ "${header}" == "Partitions"* ]] && table_data+="|${part}"
+        [[ "${header}" == "Tran"* ]]       && table_data+="|${tran}"
+        [[ "${header}" == "Model"* ]]      && table_data+="|${model}"
+        [[ "${header}" == "Size"* ]]       && table_data+="|${size}"
+        [[ "${header}" == "Serial"* ]]     && table_data+="|${serial}"
+        [[ "${header}" == "Rev"* ]]        && table_data+="|${revision}"
+        [[ "${header}" == "Temp"* ]]       && table_data+="|${temp}"
+        [[ "${header}" == "Health"* ]]     && table_data+="|${health}"
+        [[ "${header}" == "Power On"* ]]   && table_data+="|${poweron}"
+    done < <(echo -e "${headers}")
+    out+="|${state}${table_data}|\n"
+done < <(lsblk --json --bytes --output PATH,NAME,MODEL,SERIAL,REV,SIZE,TYPE,TRAN,LABEL,FSTYPE | jq -r '.blockdevices[]' | jq -c 'select(.type=="disk")')
 
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${PHYSICAL_DRIVES_ROW_FILTER}"
