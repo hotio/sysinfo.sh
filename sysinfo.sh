@@ -503,7 +503,7 @@ while read -r disk; do
         [[ "${header}" == "Power On"* ]]   && table_data+="|${poweron}"
     done < <(echo -e "${headers}")
     out+="|${state}${table_data}|\n"
-done < <(lsblk --json --bytes --output PATH,NAME,MODEL,SERIAL,REV,SIZE,TYPE,TRAN,LABEL,FSTYPE | jq -r '.blockdevices[]' | jq -c 'select(.type=="disk")')
+done < <(lsblk --json --bytes --output PATH,NAME,MODEL,SERIAL,REV,SIZE,TYPE,TRAN,LABEL,FSTYPE | jq -c '.blockdevices[] | select(.type=="disk")')
 
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${PHYSICAL_DRIVES_ROW_FILTER}"
