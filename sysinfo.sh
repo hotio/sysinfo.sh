@@ -93,7 +93,7 @@ function displaytime {
 #######################################################
 grep -q -e '--' <<< "${*}" && cli_options="${*} "
 if grep -q -e '--help' <<< "${cli_options}"; then
-    printf '%b' "Available options:\n  --system\n  --ip\n  --logins\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
+    printf '%b' "Available options:\n  --system\n  --ip\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
     exit 0
 fi
 
@@ -122,22 +122,28 @@ PROCESSOR_COUNT=$(wc -l <<< "${PROCESSOR}")
 # updates check
 if type -p apt > /dev/null; then
     UPDATES="$(apt list --upgradable 2> /dev/null | tail -n+2 | wc -l)"
-    [[ "${UPDATES}" -gt 0 ]] && UPDATES_TEXT="\n  Updates   : ${LightYellow}${UPDATES} available${Reset}"
-    [[ "${UPDATES}" -eq 0 ]] && UPDATES_TEXT="\n  Updates   : ${UPDATES} available"
+    [[ "${UPDATES}" -gt 0 ]] && UPDATES_TEXT="\n  Updates    : ${LightYellow}${UPDATES} available${Reset}"
+    [[ "${UPDATES}" -eq 0 ]] && UPDATES_TEXT="\n  Updates    : ${UPDATES} available"
 else
     UPDATES_TEXT=""
 fi
+
+# last login
+last_login=$(lastlog -u "${USER}" | tail -n+2)
+last_login_from="$(awk '{print $3}' <<< "${last_login}" | xargs)"
+last_login_time="$(awk '{$1="";$2="";$3="";print $0}' <<< "${last_login}" | awk '{$1=$1};1')"
 
 # print results
 out="
 ${BWhite}${Black} system info ${Reset}
 
-  Distro    : ${DISTRO}
-  Kernel    : ${KERNEL}
-  Uptime    : ${UPTIME}
-  CPU       : ${PROCESSOR_NAME} (${Cyan}${PROCESSOR_COUNT}${Reset} vCPU)
-  Load      : ${Cyan}${LOAD1}${Reset} (1m), ${Cyan}${LOAD5}${Reset} (5m), ${Cyan}${LOAD15}${Reset} (15m)
-  Processes : ${Cyan}${PROCESS_ROOT}${Reset} (root), ${Cyan}${PROCESS_USER}${Reset} (user), ${Cyan}${PROCESS_ALL}${Reset} (total)${UPDATES_TEXT}
+  Distro     : ${DISTRO}
+  Kernel     : ${KERNEL}
+  Uptime     : ${UPTIME}
+  CPU        : ${PROCESSOR_NAME} (${Cyan}${PROCESSOR_COUNT}${Reset} vCPU)
+  Load       : ${Cyan}${LOAD1}${Reset} (1m), ${Cyan}${LOAD5}${Reset} (5m), ${Cyan}${LOAD15}${Reset} (15m)
+  Processes  : ${Cyan}${PROCESS_ROOT}${Reset} (root), ${Cyan}${PROCESS_USER}${Reset} (user), ${Cyan}${PROCESS_ALL}${Reset} (total)${UPDATES_TEXT}
+  Last login : from ${last_login_from} on ${last_login_time}
 "
 
 printf "%b" "${out}"
@@ -158,14 +164,6 @@ done < <(jq -r '.[].ifname' <<< "${json}" | grep -v -E "${IP_ADDRESSES_INTERFACE
 printf '%b' "\n${BWhite}${Black} ip addresses ${Reset}\n\n"
 [[ -n ${out} ]] && printf '%b\n' "${out}" | sed 's/^,:/, /' | column -t -o ' ' -s ','
 [[ -z ${out} ]] && printf '%b'  "  none found\n"
-fi
-
-#######################################################
-## LOGINS                                            ##
-#######################################################
-if [[ -z "${cli_options}" ]] || grep -q -e '--logins ' <<< "${cli_options}"; then
-    printf '%b' "\n${BWhite}${Black} logins ${Reset}\n\n"
-    last --hostlast --dns | head "-${LOGINS_NUMBER_OF_ROWS}" | sed -e 's/^/  | /' -e 's/$/ |/'
 fi
 
 #######################################################
