@@ -5,6 +5,7 @@
 #######################################################
 ## CONFIGURATION                                     ##
 #######################################################
+LOGINS_NUMBER_OF_ROWS=4
 DOCKER_NUMBER_OF_COLUMNS=4
 VIRTUAL_MACHINES_NUMBER_OF_COLUMNS=3
 SYSTEMD_SERVICES_NUMBER_OF_COLUMNS=5
@@ -92,7 +93,7 @@ function displaytime {
 #######################################################
 grep -q -e '--' <<< "${*}" && cli_options="${*} "
 if grep -q -e '--help' <<< "${cli_options}"; then
-    printf '%b' "Available options:\n  --system\n  --ip\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
+    printf '%b' "Available options:\n  --system\n  --ip\n  --logins\n  --thermals\n  --ups\n  --docker\n  --vm\n  --systemd\n  --smb\n  --network\n  --memory\n  --diskspace\n  --drives\n"
     exit 0
 fi
 
@@ -160,6 +161,14 @@ printf '%b' "\n${BWhite}${Black} ip addresses ${Reset}\n\n"
 fi
 
 #######################################################
+## LOGINS                                            ##
+#######################################################
+if [[ -z "${cli_options}" ]] || grep -q -e '--logins ' <<< "${cli_options}"; then
+    printf '%b' "\n${BWhite}${Black} logins ${Reset}\n\n"
+    last --hostlast --dns | head "-${LOGINS_NUMBER_OF_ROWS}" | sed -e 's/^/  | /' -e 's/$/ |/'
+fi
+
+#######################################################
 ## THERMALS                                          ##
 #######################################################
 if [[ -z "${cli_options}" ]] || grep -q -e '--thermals ' <<< "${cli_options}"; then
@@ -196,7 +205,7 @@ while read -r line; do
         ups_status="    Status  : ${LightRed}${ups_status}${Reset}\n"
     fi
     out+="${ups_model}${ups_status}${ups_battery}${ups_runtime}${ups_load}"
-done < <(grep ^MONITOR /etc/nut/upsmon.conf | awk '{print $2}')
+done < <(sudo grep ^MONITOR /etc/nut/upsmon.conf | awk '{print $2}')
 
 printf '%b' "\n${BWhite}${Black} ups info ${Reset}\n"
 [[ -n ${out} ]] && printf '%b' "${out}"
@@ -443,12 +452,12 @@ while read -r disk; do
     serial=$(jq -r '.serial // empty' <<< "${disk}")
     revision=$(jq -r '.rev // empty' <<< "${disk}")
 
-    if smartctl --info "${path}" | grep -q 'SMART support is: Enabled'; then
-        state=$(hdparm -C "${path}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
+    if sudo smartctl --info "${path}" | grep -q 'SMART support is: Enabled'; then
+        state=$(sudo hdparm -C "${path}" 2> /dev/null | grep 'drive state is:' | awk -F ':' '{print $2}' | xargs)
     fi
 
     if [[ "${state}" == "active/idle" ]]; then
-        json=$(smartctl -n standby -xj "${path}")
+        json=$(sudo smartctl -n standby -xj "${path}")
         temp=$(jq -r '.temperature.current' <<< "${json}")
         health="${LightGreen}ok${Reset}"
         poweron="$(displaytime "$(jq -r '.power_on_time.hours' <<< "${json}")")"
