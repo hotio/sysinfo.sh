@@ -5,7 +5,6 @@
 #######################################################
 ## CONFIGURATION                                     ##
 #######################################################
-LOGINS_NUMBER_OF_ROWS=4
 DOCKER_NUMBER_OF_COLUMNS=4
 VIRTUAL_MACHINES_NUMBER_OF_COLUMNS=3
 SYSTEMD_SERVICES_NUMBER_OF_COLUMNS=5
@@ -86,7 +85,6 @@ function displaytime {
         printf '%s' "${1}"
     fi
 }
-
 
 #######################################################
 ## SHOW HELP                                         ##
