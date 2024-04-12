@@ -128,11 +128,6 @@ else
     UPDATES_TEXT=""
 fi
 
-# last login
-last_login=$(lastlog -u "${USER}" | tail -n+2)
-last_login_from="$(awk '{print $3}' <<< "${last_login}" | xargs)"
-last_login_time="$(awk '{$1="";$2="";$3="";print $0}' <<< "${last_login}" | awk '{$1=$1};1')"
-
 # print results
 out="
 ${BWhite}${Black} system info ${Reset}
@@ -143,7 +138,6 @@ ${BWhite}${Black} system info ${Reset}
   CPU        : ${PROCESSOR_NAME} (${Cyan}${PROCESSOR_COUNT}${Reset} vCPU)
   Load       : ${Cyan}${LOAD1}${Reset} (1m), ${Cyan}${LOAD5}${Reset} (5m), ${Cyan}${LOAD15}${Reset} (15m)
   Processes  : ${Cyan}${PROCESS_ROOT}${Reset} (root), ${Cyan}${PROCESS_USER}${Reset} (user), ${Cyan}${PROCESS_ALL}${Reset} (total)${UPDATES_TEXT}
-  Last login : from ${last_login_from} on ${last_login_time}
 "
 
 printf "%b" "${out}"
