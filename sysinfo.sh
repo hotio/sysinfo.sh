@@ -120,8 +120,8 @@ PROCESSOR_COUNT=$(wc -l <<< "${PROCESSOR}")
 # updates check
 if type -p apt > /dev/null; then
     UPDATES="$(apt list --upgradable 2> /dev/null | tail -n+2 | wc -l)"
-    [[ "${UPDATES}" -gt 0 ]] && UPDATES_TEXT="\n  Updates    : ${LightYellow}${UPDATES} available${Reset}"
-    [[ "${UPDATES}" -eq 0 ]] && UPDATES_TEXT="\n  Updates    : ${UPDATES} available"
+    [[ "${UPDATES}" -gt 0 ]] && UPDATES_TEXT="\n  Updates   : ${LightYellow}${UPDATES} available${Reset}"
+    [[ "${UPDATES}" -eq 0 ]] && UPDATES_TEXT="\n  Updates   : ${UPDATES} available"
 else
     UPDATES_TEXT=""
 fi
@@ -130,12 +130,12 @@ fi
 out="
 ${BWhite}${Black} system info ${Reset}
 
-  Distro     : ${DISTRO}
-  Kernel     : ${KERNEL}
-  Uptime     : ${UPTIME}
-  CPU        : ${PROCESSOR_NAME} (${Cyan}${PROCESSOR_COUNT}${Reset} vCPU)
-  Load       : ${Cyan}${LOAD1}${Reset} (1m), ${Cyan}${LOAD5}${Reset} (5m), ${Cyan}${LOAD15}${Reset} (15m)
-  Processes  : ${Cyan}${PROCESS_ROOT}${Reset} (root), ${Cyan}${PROCESS_USER}${Reset} (user), ${Cyan}${PROCESS_ALL}${Reset} (total)${UPDATES_TEXT}
+  Distro    : ${DISTRO}
+  Kernel    : ${KERNEL}
+  Uptime    : ${UPTIME}
+  CPU       : ${PROCESSOR_NAME} (${Cyan}${PROCESSOR_COUNT}${Reset} vCPU)
+  Load      : ${Cyan}${LOAD1}${Reset} (1m), ${Cyan}${LOAD5}${Reset} (5m), ${Cyan}${LOAD15}${Reset} (15m)
+  Processes : ${Cyan}${PROCESS_ROOT}${Reset} (root), ${Cyan}${PROCESS_USER}${Reset} (user), ${Cyan}${PROCESS_ALL}${Reset} (total)${UPDATES_TEXT}
 "
 
 printf "%b" "${out}"
