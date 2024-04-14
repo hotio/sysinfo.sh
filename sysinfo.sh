@@ -392,6 +392,9 @@ bar_width=52
 
 printf '%b' "\n${BWhite}${Black} disk space usage ${Reset}\n\n"
 while read -r line; do
+    target=$(awk '{print $1}' <<< "${line}")
+    pcent=$(awk '{print $2}' <<< "${line}")
+    size=$(numfmt --to si --from-unit=K --format "%f" "$(awk '{print $3}' <<< "${line}")")
     usage_perc=$(awk '{print $2}' <<< "${line}"| sed 's/%//')
     used_width=$(((usage_perc*bar_width)/100))
 
@@ -409,9 +412,9 @@ while read -r line; do
     done
     bar+="${Reset}"
 
-    awk '{ printf("  %-32s%+3s used out of %+4s\n", $1, $2, $3); }' <<< "${line}"
+    printf "  %-32s%+3s used out of %+4s\n" "${target}" "${pcent}" "${size}"
     printf "  %b\n" "${bar}"
-done < <(df -H -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2)
+done < <(df --block-size=1K -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2)
 fi
 
 #######################################################
