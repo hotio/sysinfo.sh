@@ -417,7 +417,7 @@ while read -r line; do
 
     printf "  %-32s%+3s used out of %+4s\n" "${target}" "${pcent}" "${size}"
     printf "  %b\n" "${bar}"
-done < <(df --block-size=1K -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2)
+done < <(df --block-size=1K -x squashfs -x tmpfs -x devtmpfs -x overlay --output=target,pcent,size | grep -v -E "${DISK_SPACE_USAGE_FILTER}" | tail -n+2 | sort -k 1)
 fi
 
 #######################################################
