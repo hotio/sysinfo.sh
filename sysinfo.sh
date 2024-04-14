@@ -455,6 +455,8 @@ while read -r disk; do
     if [[ "${state}" == "active/idle" ]]; then
         json=$(sudo smartctl -n standby -xj "${path}")
         temp=$(jq -r '.temperature.current' <<< "${json}")
+        model=$(jq -r '.model_name' <<< "${json}")
+        revision=$(jq -r '.firmware_version' <<< "${json}")
         health="${LightGreen}ok${Reset}"
         poweron="$(displaytime "$(jq -r '.power_on_time.hours' <<< "${json}")")"
         if [[ "${tran}" == "sata" ]] || [[ "${tran}" == "sas" ]]; then
