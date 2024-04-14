@@ -207,6 +207,7 @@ fi
 #######################################################
 if [[ -z "${cli_options}" ]] || grep -q -e '--docker ' <<< "${cli_options}"; then
 out=""
+unset i
 while IFS=',' read -r name status; do
     image=$(docker inspect --format='{{.Config.Image}}' "${name}" 2> /dev/null)
     image_digest=$(docker image inspect --format='{{.Id}}' "${image}" 2> /dev/null)
@@ -248,6 +249,7 @@ column3=$(grep -ob "State" <<< "${virsh_output}" | grep -oE "[0-9]+")
 column2_length=$((column3-column2))
 
 out=""
+unset i
 while IFS= read -r vm; do
     name=$(xargs <<< "${vm:${column2}:${column2_length}}")
     status=$(xargs <<< "${vm:${column3}}")
@@ -277,6 +279,7 @@ fi
 if [[ -z "${cli_options}" ]] || grep -q -e '--systemd ' <<< "${cli_options}"; then
 type -p systemctl > /dev/null && services="${SYSTEMD_SERVICES_MONITOR}"
 out=""
+unset i
 while read -r service; do
     status=$(systemctl is-active "${service}" 2> /dev/null)
     status_text=""
