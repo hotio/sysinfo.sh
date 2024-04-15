@@ -96,6 +96,13 @@ if grep -q -e '--help' <<< "${cli_options}"; then
 fi
 
 #######################################################
+## SUDO CHECK                                        ##
+#######################################################
+if grep -q -e '--ups' <<< "${cli_options}" || grep -q -e '--drives' <<< "${cli_options}" || [[ -z "${cli_options}" ]]; then
+    sudo echo -n ""
+fi
+
+#######################################################
 ## SYSTEM INFO                                       ##
 #######################################################
 if [[ -z "${cli_options}" ]] || grep -q -e '--system ' <<< "${cli_options}"; then
