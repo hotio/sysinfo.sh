@@ -28,6 +28,10 @@ PHYSICAL_DRIVES_COLUMN_FILTER="DONOTFILTER"
 #######################################################
 ## COLOR DEFINITIONS                                 ##
 #######################################################
+MoveUp="\033[1A"
+DelLine="\033[K"
+ClearAction="${MoveUp}${DelLine}${MoveUp}${DelLine}"
+
 Reset='\e[0m'
 Bold='\e[1m'
 Faint='\e[2m'
@@ -437,6 +441,8 @@ WARN_TEMP_NVME=40
 MAX_TEMP_NVME=60
 LIFE_TRESHOLD_NVME=90
 
+printf '%b' "\n${BWhite}${Black} fetching data... ${Reset}\n"
+
 headers="Dev\nPartitions\nTran\nModel\nSize\nSerial\nRev\nTemp\nHealth\nPower On"
 while read -r header; do
     echo -n "$header" | grep -q -E "${PHYSICAL_DRIVES_COLUMN_FILTER}" || table_headers+="|${Bold}${header}${Reset}"
@@ -520,6 +526,7 @@ while read -r disk; do
     out+="|${state}${table_data}|\n"
 done < <(lsblk --json --bytes --output PATH,NAME,MODEL,SERIAL,REV,SIZE,TYPE,TRAN,LABEL,FSTYPE | jq -c '.blockdevices[] | select(.type=="disk")')
 
+printf '%b' "${ClearAction}"
 printf '%b' "\n${BWhite}${Black} physical drives ${Reset}\n\n"
 [[ $(echo -e "${out}" | wc -l) -gt 2 ]] && printf '%b' " ${out}\n" | column -t -o ' | ' -s '|' | grep -v -E "${PHYSICAL_DRIVES_ROW_FILTER}"
 [[ $(echo -e "${out}" | wc -l) -eq 2 ]] && printf '%b'  "  no physical drives found\n"
