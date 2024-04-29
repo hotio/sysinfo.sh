@@ -224,7 +224,7 @@ while IFS=',' read -r name status; do
     image_digest=$(docker image inspect --format='{{.Id}}' "${image}" 2> /dev/null)
     container_digest=$(docker inspect --format='{{.Image}}' "${name}" 2> /dev/null)
     update_status=""
-    [[ "${image_digest}" != "${container_digest}" ]] && update_status=" ${Bold}*${Reset}"
+    [[ "${image_digest}" != "${container_digest}" ]] && update_status=" ${Cyan}*${Reset}"
     [[ "${status}" == *"Created"* ]] && status_text="${Bold}x${Reset}"
     [[ "${status}" == *"Exited"* ]]  && status_text="${Bold}${LightRed}x${Reset}"
     [[ "${status}" == *"Up"* ]]      && status_text="${Bold}${LightGreen}>${Reset}"
