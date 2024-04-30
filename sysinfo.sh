@@ -265,6 +265,13 @@ while IFS= read -r vm; do
     name=$(xargs <<< "${vm:${column2}:${column2_length}}")
     status=$(xargs <<< "${vm:${column3}}")
     status_text=""
+
+    docker=$(docker ps -aq -f status=running -f name="${name}.vm")
+    if [[ -n "${docker}" ]]; then
+        vnc_uri=$(docker inspect --format '{{ index .Config.Labels "vm.novnc.uri"}}' "${name}.vm")
+        name="\e]8;;${vnc_uri}\e\\${name}\e]8;;\e\\"
+    fi
+
     [[ "${status}" == "running" ]]     && status_text="${Bold}${LightGreen}>${Reset}"
     [[ "${status}" == "paused" ]]      && status_text="${Bold}${LightYellow}x${Reset}"
     [[ "${status}" == "shut off" ]]    && status_text="${Bold}${LightRed}x${Reset}"
