@@ -190,27 +190,27 @@ fi
 #######################################################
 if [[ -z "${cli_options}" ]] || grep -q -e '--ups ' <<< "${cli_options}"; then
 out=""
-while read -r line; do
-    ups_stats=$(upsc "${line}" 2> /dev/null)
-    unset ups_model ups_battery ups_runtime ups_load ups_status
-    grep -q ups.model: <<< "${ups_stats}" && ups_model="\n  [$(grep ups.model: <<< "${ups_stats}" | awk -F': ' '{print $2}' | xargs)]\n"
-    grep -q battery.charge: <<< "${ups_stats}" && ups_battery="    Battery : $(grep battery.charge: <<< "${ups_stats}" | awk -F': ' '{print $2}')%\n"
-    grep -q battery.runtime: <<< "${ups_stats}" && ups_runtime="    Runtime : $(sec2min "$(grep battery.runtime: <<< "${ups_stats}" | awk '{print $2}')") minutes\n"
-    grep -q ups.load: <<< "${ups_stats}" && grep -q ups.realpower.nominal: <<< "${ups_stats}" && ups_load="    Load    : $(grep ups.load: <<< "${ups_stats}" | awk '{print $2}')% / $(( $(grep ups.realpower.nominal: <<< "${ups_stats}" | awk '{print $2}')*$(grep ups.load: <<< "${ups_stats}" | awk '{print $2}')/100 ))W\n"
-    grep -q ups.status: <<< "${ups_stats}" && ups_status=$(grep ups.status: <<< "${ups_stats}" | awk '{print $2}')
-    if [[ "${ups_status}" == "OL" ]]; then
-        ups_status="    Status  : ${LightGreen}${ups_status}${Reset}\n"
-    elif [[ "${ups_status}" == "CHRG" ]]; then
-        ups_status="    Status  : ${LightYellow}${ups_status}${Reset}\n"
-    elif [[ -n "${ups_status}" ]]; then
-        ups_status="    Status  : ${LightRed}${ups_status}${Reset}\n"
-    fi
-    out+="${ups_model}${ups_status}${ups_battery}${ups_runtime}${ups_load}"
-done < <(sudo grep ^MONITOR /etc/nut/upsmon.conf | awk '{print $2}')
-
-printf '%b' "\n${BWhite}${Black} ups info ${Reset}\n"
+if [[ -f /etc/nut/upsmon.conf ]]; then
+    while read -r line; do
+        ups_stats=$(upsc "${line}" 2> /dev/null)
+        unset ups_model ups_battery ups_runtime ups_load ups_status
+        grep -q ups.model: <<< "${ups_stats}" && ups_model="\n  [$(grep ups.model: <<< "${ups_stats}" | awk -F': ' '{print $2}' | xargs)]\n"
+        grep -q battery.charge: <<< "${ups_stats}" && ups_battery="    Battery : $(grep battery.charge: <<< "${ups_stats}" | awk -F': ' '{print $2}')%\n"
+        grep -q battery.runtime: <<< "${ups_stats}" && ups_runtime="    Runtime : $(sec2min "$(grep battery.runtime: <<< "${ups_stats}" | awk '{print $2}')") minutes\n"
+        grep -q ups.load: <<< "${ups_stats}" && grep -q ups.realpower.nominal: <<< "${ups_stats}" && ups_load="    Load    : $(grep ups.load: <<< "${ups_stats}" | awk '{print $2}')% / $(( $(grep ups.realpower.nominal: <<< "${ups_stats}" | awk '{print $2}')*$(grep ups.load: <<< "${ups_stats}" | awk '{print $2}')/100 ))W\n"
+        grep -q ups.status: <<< "${ups_stats}" && ups_status=$(grep ups.status: <<< "${ups_stats}" | awk '{print $2}')
+        if [[ "${ups_status}" == "OL" ]]; then
+            ups_status="    Status  : ${LightGreen}${ups_status}${Reset}\n"
+        elif [[ "${ups_status}" == "CHRG" ]]; then
+            ups_status="    Status  : ${LightYellow}${ups_status}${Reset}\n"
+        elif [[ -n "${ups_status}" ]]; then
+            ups_status="    Status  : ${LightRed}${ups_status}${Reset}\n"
+        fi
+        out+="${ups_model}${ups_status}${ups_battery}${ups_runtime}${ups_load}"
+    done < <(sudo grep ^MONITOR /etc/nut/upsmon.conf | awk '{print $2}')
+fi
+[[ -n ${out} ]] && printf '%b' "\n${BWhite}${Black} ups info ${Reset}\n"
 [[ -n ${out} ]] && printf '%b' "${out}"
-[[ -z ${out} ]] && printf '%b'  "\n  no ups found\n"
 fi
 
 #######################################################
